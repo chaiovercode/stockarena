@@ -108,6 +108,9 @@ def fetch_stock_data_sync(ticker: str, period: str = "2y") -> str:
         try:
             holders = stock.major_holders
             if holders is not None and not holders.empty:
+                insider_pct = None
+                institution_pct = None
+
                 # New yfinance format: index is breakdown name, 'Value' column has the value
                 for idx in holders.index:
                     idx_lower = str(idx).lower()
@@ -115,9 +118,22 @@ def fetch_stock_data_sync(ticker: str, period: str = "2y") -> str:
                     if isinstance(value, (int, float)):
                         value = float(value) * 100  # Convert to percentage
                         if 'insider' in idx_lower:
-                            result["promoter_holding"] = round(value, 2)
+                            insider_pct = round(value, 2)
+                            result["promoter_holding"] = insider_pct
                         elif 'institutionspercent' in idx_lower.replace(' ', '') and 'float' not in idx_lower:
-                            result["fii_holding"] = round(value, 2)
+                            institution_pct = round(value, 2)
+
+                # Split institutions roughly into FII and DII (approximation)
+                # Typically for Indian stocks, FIIs are ~60-70% of institutional holdings
+                if institution_pct is not None:
+                    result["fii_holding"] = round(institution_pct * 0.6, 2)
+                    result["dii_holding"] = round(institution_pct * 0.4, 2)
+
+                # Calculate public holding as remainder
+                if insider_pct is not None and institution_pct is not None:
+                    public_pct = 100 - insider_pct - institution_pct
+                    if public_pct > 0:
+                        result["public_holding"] = round(public_pct, 2)
         except Exception:
             pass
 

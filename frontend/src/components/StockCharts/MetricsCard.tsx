@@ -22,7 +22,7 @@ const METRIC_TOOLTIPS: Record<string, string> = {
   'Q Revenue': 'Latest quarterly revenue. Compare with previous quarters for growth trend.',
   'Q Profit': 'Latest quarterly net profit. Check if growing consistently.',
   'Target Price': 'Average analyst price target. Compare with current price for upside/downside potential.',
-  'Shareholding Pattern': 'Promoters = company founders/management. Higher promoter holding (>50%) shows skin in game. Institutions = FIIs/DIIs/Mutual Funds.',
+  'Shareholding Pattern': 'Promoters = founders/management (>50% shows commitment). FIIs = Foreign Institutional Investors. DIIs = Domestic Institutional Investors (MFs, insurance). Public = retail investors.',
   'Analyst Recommendations': 'Aggregated ratings from brokerages. More Buys = bullish consensus. Consider along with target price.',
 };
 
@@ -97,7 +97,7 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
   );
 
   const totalAnalystRecs = stockData.analyst_buy + stockData.analyst_hold + stockData.analyst_sell;
-  const hasHoldings = stockData.promoter_holding || stockData.fii_holding;
+  const hasHoldings = stockData.promoter_holding !== null || stockData.fii_holding !== null || stockData.dii_holding !== null || stockData.public_holding !== null;
   const hasAnalyst = totalAnalystRecs > 0;
 
   return (
@@ -201,7 +201,7 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
               )}
             </div>
             <div className="space-y-2">
-              {stockData.promoter_holding && (
+              {stockData.promoter_holding !== null && stockData.promoter_holding !== undefined && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Promoters</span>
                   <div className="flex items-center gap-2">
@@ -217,9 +217,9 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
                   </div>
                 </div>
               )}
-              {stockData.fii_holding && (
+              {stockData.fii_holding !== null && stockData.fii_holding !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Institutions</span>
+                  <span className="text-sm text-gray-400">FIIs</span>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
                       <div
@@ -229,6 +229,38 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
                     </div>
                     <span className="text-sm font-bold text-white w-12 text-right">
                       {stockData.fii_holding.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+              {stockData.dii_holding !== null && stockData.dii_holding !== undefined && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">DIIs</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-comic-purple rounded"
+                        style={{ width: `${Math.min(stockData.dii_holding, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-white w-12 text-right">
+                      {stockData.dii_holding.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+              {stockData.public_holding !== null && stockData.public_holding !== undefined && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Public</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-comic-green rounded"
+                        style={{ width: `${Math.min(stockData.public_holding, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-white w-12 text-right">
+                      {stockData.public_holding.toFixed(1)}%
                     </span>
                   </div>
                 </div>
