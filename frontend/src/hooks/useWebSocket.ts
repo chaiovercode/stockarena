@@ -8,18 +8,9 @@ interface UseWebSocketOptions {
   onDisconnect?: () => void;
 }
 
-const getWsUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    const apiUrl = import.meta.env.VITE_API_URL;
-    return apiUrl.replace('https://', 'wss://').replace('http://', 'ws://');
-  }
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:8000';
-  }
-  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
-};
-
-const WS_URL = getWsUrl();
+const WS_URL = import.meta.env.DEV
+  ? 'ws://localhost:8000'
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
 export function useWebSocket(sessionId: string, options: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);

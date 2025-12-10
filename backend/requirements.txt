@@ -3,9 +3,9 @@ fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 websockets>=12.0
 
-# LangChain ecosystem
+# LangChain ecosystem - let pip resolve compatible versions
 langchain>=0.2.0
-langchain-openai>=0.1.0
+langchain-google-genai>=1.0.0
 langgraph>=0.2.0
 
 # CrewAI
@@ -24,4 +24,3 @@ pydantic-settings>=2.0.0
 python-dotenv>=1.0.0
 httpx>=0.25.0
 aiofiles>=23.0.0
-openai>=1.0.0
