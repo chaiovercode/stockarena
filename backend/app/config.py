@@ -36,7 +36,7 @@ class Settings(BaseSettings):
             return ["http://localhost:5173", "http://localhost:3000"]
 
     class Config:
-        env_file = ".env"
+        env_file = "backend/.env"
         env_file_encoding = "utf-8"
         extra = "ignore"
 

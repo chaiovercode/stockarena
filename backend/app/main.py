@@ -1,5 +1,14 @@
 """FastAPI application entry point."""
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load environment variables before any other imports that might need them
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

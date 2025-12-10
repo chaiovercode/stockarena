@@ -13,7 +13,7 @@ crewai>=0.80.0
 
 # Data sources
 yfinance>=0.2.40
-duckduckgo-search>=6.0.0
+ddgs>=6.1.5
 
 # Data processing
 pandas>=2.0.0
