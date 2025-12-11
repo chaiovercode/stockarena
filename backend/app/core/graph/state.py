@@ -63,6 +63,36 @@ class NewsItem(BaseModel):
     date: str
 
 
+class MarketIndex(BaseModel):
+    """Market index data structure."""
+
+    name: str
+    symbol: str
+    value: float
+    change: float
+    change_percent: float
+    trend: str  # 'up', 'down', 'flat'
+
+
+class TopHeadline(BaseModel):
+    """Top headline for summary."""
+
+    title: str
+    source: str
+    url: str
+
+
+class SummaryAnalysis(BaseModel):
+    """AI-generated market + stock summary."""
+
+    market_overview: str
+    stock_context: str
+    key_catalysts: list[str] = Field(default_factory=list)
+    top_headlines: list[TopHeadline] = Field(default_factory=list)
+    market_sentiment: Literal["bullish", "bearish", "neutral"] = "neutral"
+    confidence_score: float = Field(ge=0.0, le=1.0, default=0.7)
+
+
 class Source(BaseModel):
     """Data source reference."""
 
@@ -138,6 +168,8 @@ class DebateState(TypedDict):
     # Fetched Data
     stock_data: StockData | None
     news_items: list[NewsItem]
+    market_data: list[MarketIndex] | None
+    summary_analysis: SummaryAnalysis | None
 
     # Debate Flow Control
     current_round: int
@@ -155,6 +187,7 @@ class DebateState(TypedDict):
     phase: Literal[
         "initialized",
         "fetching",
+        "summarizing",
         "bull_analyzing",
         "bear_analyzing",
         "moderating",
@@ -180,6 +213,8 @@ def create_initial_state(
         time_horizon=time_horizon,
         stock_data=None,
         news_items=[],
+        market_data=None,
+        summary_analysis=None,
         current_round=1,
         max_rounds=max_rounds,
         bull_analysis=None,

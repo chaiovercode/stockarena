@@ -36,18 +36,20 @@ class ModeratorAgent:
     def _create_agent(self) -> Agent:
         """Create the CrewAI agent."""
         return Agent(
-            role="Balanced Investment Analyst & Debate Synthesizer",
-            goal="""Synthesize bull and bear arguments to provide a SUGGESTIVE outlook based on the
-                   specified time horizon. Your role is to inform, not to give direct financial advice.
-                   Present balanced insights that help investors make their own informed decisions.""",
-            backstory="""You are a seasoned investment analyst known for your balanced, thoughtful analysis.
-                        You've watched countless bull vs bear debates and your skill is synthesizing both
-                        perspectives into actionable insights. You understand that different time horizons
-                        require different evaluation criteria. You always remind investors that markets are
-                        uncertain and your analysis is suggestive, not prescriptive. You've seen overconfident
-                        analysts get burned, so you present probabilities and scenarios rather than certainties.
-                        Your value is in helping investors think through the trade-offs, not in telling them
-                        what to do. Indian market specialist (NSE/BSE) with deep understanding of retail investors.""",
+            role="Decisive Investment Analyst & Debate Judge",
+            goal="""Analyze bull and bear arguments objectively and determine which case is STRONGER
+                   for the given time horizon. Provide a clear verdict - don't fence-sit unless
+                   truly uncertain. Your role is to weigh evidence and make a reasoned call.""",
+            backstory="""You are a respected investment analyst known for making clear, well-reasoned
+                        calls on stocks. You've judged hundreds of bull vs bear debates on Dalal Street.
+                        While you're balanced, you're NOT indecisive - when the evidence points one way,
+                        you say so. You understand that investors need clarity, not wishy-washy "it could
+                        go either way" analysis. You evaluate confidence levels, compare argument strength,
+                        and make a call. You only say MIXED SIGNALS when both cases are genuinely equal -
+                        which is rare. Your track record speaks for itself: you called the IT sector recovery,
+                        warned on overvalued IPOs, and spotted value in beaten-down financials. You don't
+                        guess - you analyze deeply and commit to a view. Indian market specialist (NSE/BSE)
+                        with 15+ years calling stocks correctly.""",
             tools=[],  # Moderator synthesizes existing info
             llm=self.llm,
             verbose=True,
@@ -147,27 +149,35 @@ class ModeratorAgent:
             {bear_args}
             {history_context}
 
-            Provide your SUGGESTIVE analysis in JSON format ONLY:
+            Analyze which case is STRONGER for the {horizon_label} timeframe and provide your verdict in JSON format ONLY:
             {{
-                "summary": "3-4 sentences synthesizing both perspectives for the {horizon_label} timeframe. What are the key considerations? What scenarios could play out? Remember: this is suggestive, not directive.",
+                "summary": "3-4 sentences synthesizing both perspectives. Clearly state which case appears stronger for {horizon_label} and why.",
                 "arguments": [
                     {{"point": "Key factor favoring bulls", "evidence": "How relevant is this for {horizon_label}?", "confidence": <0.5-0.95>}},
                     {{"point": "Key factor favoring bears", "evidence": "How relevant is this for {horizon_label}?", "confidence": <0.5-0.95>}},
-                    {{"point": "Critical factor for this timeframe", "evidence": "What should investors watch most closely?", "confidence": <0.5-0.95>}}
+                    {{"point": "Critical deciding factor", "evidence": "What tips the scales one way or the other?", "confidence": <0.5-0.95>}}
                 ],
                 "recommendation": "<PICK ONE: LOOKS BULLISH | LEANS BULLISH | MIXED SIGNALS | LEANS BEARISH | LOOKS BEARISH>",
                 "confidence_score": <0.5-0.95 based on clarity of the outlook>
             }}
 
-            SUGGESTIVE OUTLOOK GUIDELINES for {horizon_label}:
-            - LOOKS BULLISH: Bull case is compelling for this timeframe. Positive factors outweigh concerns.
-            - LEANS BULLISH: More positives than negatives, but some caution warranted.
-            - MIXED SIGNALS: Genuine uncertainty. Both cases have merit. Investors should weigh their own risk tolerance.
-            - LEANS BEARISH: More concerns than positives for this timeframe.
-            - LOOKS BEARISH: Bear case is compelling. Significant risks or headwinds ahead.
+            VERDICT GUIDELINES for {horizon_label}:
+            Use this decision framework based on confidence scores and argument strength:
 
-            REMEMBER: You are providing SUGGESTIVE analysis to help investors think, NOT telling them what to do.
-            Always acknowledge uncertainty and encourage investors to do their own research.
+            - LOOKS BULLISH: Choose when bull confidence ≥75% and bull case clearly dominates. Strong positive catalysts with limited downside risks.
+            - LEANS BULLISH: Choose when bull confidence is 60-74% OR bull case is moderately stronger. More positives than negatives.
+            - MIXED SIGNALS: ONLY choose when both sides are genuinely equal strength (both 50-60% confidence) OR legitimate uncertainty exists. Don't default to this!
+            - LEANS BEARISH: Choose when bear confidence is 60-74% OR bear case is moderately stronger. More concerns than positives.
+            - LOOKS BEARISH: Choose when bear confidence ≥75% and bear case clearly dominates. Significant risks outweigh potential upside.
+
+            DECISION LOGIC:
+            1. Compare bull confidence ({bull_analysis.confidence_score:.0%}) vs bear confidence ({bear_analysis.confidence_score:.0%})
+            2. Evaluate which arguments are more relevant to {horizon_label}
+            3. Consider stock fundamentals and analyst consensus
+            4. MAKE A CLEAR CALL - avoid defaulting to MIXED SIGNALS unless truly warranted
+            5. If one side is clearly stronger, say so confidently
+
+            NOTE: This is investment analysis - take a position based on the evidence. Only use MIXED SIGNALS when genuinely uncertain.
             """,
             agent=self.agent,
             expected_output="JSON formatted suggestive analysis with outlook",
@@ -206,8 +216,14 @@ class ModeratorAgent:
                     "LEANS BEARISH",
                     "LOOKS BEARISH",
                 ]
+
+                print(f"[MODERATOR] Raw recommendation from LLM: {recommendation}")
+
                 if recommendation not in valid_recommendations:
+                    print(f"[MODERATOR] Invalid recommendation '{recommendation}', defaulting to MIXED SIGNALS")
                     recommendation = "MIXED SIGNALS"
+                else:
+                    print(f"[MODERATOR] Valid recommendation: {recommendation}")
 
                 return AgentAnalysis(
                     agent_type="moderator",
@@ -226,9 +242,11 @@ class ModeratorAgent:
                     timestamp=datetime.utcnow(),
                 )
 
-        except (json.JSONDecodeError, ValueError, KeyError):
-            pass
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            print(f"[MODERATOR] Error parsing result: {e}")
+            print(f"[MODERATOR] Result snippet: {result[:200] if result else 'None'}")
 
+        print("[MODERATOR] Fallback to MIXED SIGNALS due to parsing error")
         return AgentAnalysis(
             agent_type="moderator",
             summary=str(result)[:500] if result else "Analysis completed.",

@@ -42,12 +42,14 @@ def search_news_sync(query: str, max_results: int = 10) -> str:
     """
     try:
         with DDGS() as ddgs:
+            # Note: DuckDuckGo supports: d (day), w (week), m (month)
+            # Limit to last 2 months (60 days) for recent news only
             results = list(
                 ddgs.news(
                     query,
                     region="in-en",  # India English
                     safesearch="moderate",
-                    timelimit="m",  # Last month
+                    timelimit="m",  # Last month - will be further filtered to 60 days
                     max_results=max_results,
                 )
             )

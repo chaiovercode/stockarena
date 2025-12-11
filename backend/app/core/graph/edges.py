@@ -6,7 +6,7 @@ from app.core.graph.state import DebateState
 
 def route_after_fetch(
     state: DebateState,
-) -> Literal["bull_analysis", "error_handler"]:
+) -> Literal["summary", "error_handler"]:
     """
     Route after data fetching.
 
@@ -18,7 +18,7 @@ def route_after_fetch(
     """
     if state.get("error") or state.get("stock_data") is None:
         return "error_handler"
-    return "bull_analysis"
+    return "summary"
 
 
 def route_after_bear(

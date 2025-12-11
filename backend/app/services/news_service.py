@@ -2,12 +2,42 @@
 
 import asyncio
 import re
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from app.tools.search_tool import search_news_sync, parse_news_data
 from app.core.graph.state import NewsItem
 
 # Thread pool for running sync DuckDuckGo calls
 _executor = ThreadPoolExecutor(max_workers=4)
+
+# Maximum age of news articles in days
+MAX_NEWS_AGE_DAYS = 60
+
+
+def _is_recent_news(date_str: str) -> bool:
+    """
+    Check if a news item is within the last 60 days.
+
+    Args:
+        date_str: Date string from news item (ISO format expected)
+
+    Returns:
+        True if the news is within MAX_NEWS_AGE_DAYS, False otherwise
+    """
+    if not date_str:
+        return False
+
+    try:
+        # Parse the date string - DuckDuckGo returns ISO format
+        news_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        # Get current time (UTC)
+        now = datetime.now(news_date.tzinfo) if news_date.tzinfo else datetime.utcnow()
+        # Check if within 60 days
+        age = now - news_date
+        return age.days <= MAX_NEWS_AGE_DAYS
+    except (ValueError, AttributeError):
+        # If date parsing fails, exclude the item to be safe
+        return False
 
 
 def _is_relevant_news(
@@ -94,6 +124,12 @@ async def search_news(
     )
 
     data = parse_news_data(json_str)
+
+    # Filter for date (last 60 days only)
+    data = [
+        item for item in data
+        if _is_recent_news(item.get("date", ""))
+    ]
 
     # Filter for relevance if ticker is provided
     if ticker:

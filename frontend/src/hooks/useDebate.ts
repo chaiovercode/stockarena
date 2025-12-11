@@ -11,6 +11,8 @@ const createInitialState = (sessionId: string): DebateState => ({
   maxRounds: 1,
   stockData: null,
   newsItems: [],
+  marketData: null,
+  summaryAnalysis: null,
   bullAnalysis: null,
   bearAnalysis: null,
   moderatorAnalysis: null,
@@ -38,10 +40,32 @@ export function useDebate() {
         break;
 
       case 'data_fetched':
+        console.log('[useDebate] data_fetched received:', {
+          hasStockData: !!update.stock_data,
+          hasNewsItems: !!update.news_items,
+          hasMarketData: !!update.market_data,
+          marketData: update.market_data
+        });
         setState((prev) => ({
           ...prev,
           stockData: update.stock_data || null,
           newsItems: update.news_items || [],
+          marketData: update.market_data || null,
+          phase: 'summarizing',
+        }));
+        break;
+
+      case 'summary_complete':
+        console.log('[useDebate] summary_complete received:', {
+          hasSummaryAnalysis: !!update.summary_analysis,
+          hasMarketData: !!update.market_data,
+          summaryAnalysis: update.summary_analysis,
+          marketData: update.market_data
+        });
+        setState((prev) => ({
+          ...prev,
+          summaryAnalysis: update.summary_analysis || null,
+          marketData: update.market_data || prev.marketData,
           phase: 'bull_analyzing',
         }));
         break;
@@ -161,6 +185,8 @@ export function useDebate() {
         maxRounds,
         stockData: null,
         newsItems: [],
+        marketData: null,
+        summaryAnalysis: null,
         bullAnalysis: null,
         bearAnalysis: null,
         moderatorAnalysis: null,

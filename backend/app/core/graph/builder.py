@@ -4,6 +4,7 @@ from langgraph.graph import StateGraph, START, END
 from app.core.graph.state import DebateState
 from app.core.graph.nodes import (
     fetch_data_node,
+    summary_node,
     bull_analysis_node,
     bear_analysis_node,
     moderator_node,
@@ -17,19 +18,19 @@ def build_debate_graph() -> StateGraph:
     Build the LangGraph debate flow.
 
     Flow:
-    START -> fetch_data -> [bull_analysis OR error_handler]
-                                |
-                                v
-                          bull_analysis
-                                |
-                                v
-                          bear_analysis
-                                |
-                    [if more rounds] -> bull_analysis (loop)
-                    [if done] -> moderator
-                                |
-                                v
-                              END
+    START -> fetch_data -> summary -> [bull_analysis OR error_handler]
+                                            |
+                                            v
+                                      bull_analysis
+                                            |
+                                            v
+                                      bear_analysis
+                                            |
+                                [if more rounds] -> bull_analysis (loop)
+                                [if done] -> moderator
+                                            |
+                                            v
+                                          END
 
     Returns:
         Compiled StateGraph
@@ -39,6 +40,7 @@ def build_debate_graph() -> StateGraph:
 
     # Add nodes
     builder.add_node("fetch_data", fetch_data_node)
+    builder.add_node("summary", summary_node)
     builder.add_node("bull_analysis", bull_analysis_node)
     builder.add_node("bear_analysis", bear_analysis_node)
     builder.add_node("moderator", moderator_node)
@@ -49,15 +51,18 @@ def build_debate_graph() -> StateGraph:
     # START -> fetch_data
     builder.add_edge(START, "fetch_data")
 
-    # fetch_data -> bull_analysis OR error_handler
+    # fetch_data -> summary OR error_handler
     builder.add_conditional_edges(
         "fetch_data",
         route_after_fetch,
         {
-            "bull_analysis": "bull_analysis",
+            "summary": "summary",
             "error_handler": "error_handler",
         },
     )
+
+    # summary -> bull_analysis
+    builder.add_edge("summary", "bull_analysis")
 
     # bull_analysis -> bear_analysis
     builder.add_edge("bull_analysis", "bear_analysis")

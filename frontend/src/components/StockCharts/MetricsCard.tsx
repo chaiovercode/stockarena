@@ -47,50 +47,76 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
 
   const isPositive = stockData.price_change_percent >= 0;
 
+  // Helper function to get color class based on metric
+  const getMetricColor = (label: string, rawValue: number | null | undefined): string => {
+    if (rawValue === null || rawValue === undefined) return 'text-white';
+
+    switch (label) {
+      case 'P/E Ratio':
+        // Lower is generally better, but too low is bad
+        return rawValue < 15 ? 'text-stock-success' : rawValue < 25 ? 'text-stock-warning' : 'text-stock-danger';
+      case 'EPS':
+        return rawValue > 0 ? 'text-stock-success' : 'text-stock-danger';
+      case 'P/B Ratio':
+        return rawValue < 3 ? 'text-stock-success' : rawValue < 5 ? 'text-stock-warning' : 'text-stock-danger';
+      case 'Beta':
+        return rawValue < 1 ? 'text-stock-success' : rawValue < 1.5 ? 'text-stock-warning' : 'text-stock-danger';
+      case 'Div Yield':
+        return rawValue > 2 ? 'text-stock-success' : rawValue > 1 ? 'text-stock-warning' : 'text-white';
+      case 'D/E Ratio':
+        return rawValue < 1 ? 'text-stock-success' : rawValue < 2 ? 'text-stock-warning' : 'text-stock-danger';
+      case 'ROE':
+        return rawValue > 15 ? 'text-stock-success' : rawValue > 10 ? 'text-stock-warning' : 'text-stock-danger';
+      case 'Target Price':
+        return rawValue > stockData.current_price ? 'text-stock-success' : 'text-stock-danger';
+      default:
+        return 'text-white';
+    }
+  };
+
   const basicMetrics = [
-    { label: 'Market Cap', value: stockData.market_cap ? formatNumber(stockData.market_cap) : 'N/A' },
-    { label: 'P/E Ratio', value: stockData.pe_ratio?.toFixed(2) || 'N/A' },
-    { label: '52W High', value: `₹${stockData.fifty_two_week_high.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` },
-    { label: '52W Low', value: `₹${stockData.fifty_two_week_low.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` },
-    { label: 'Volume', value: formatNumber(stockData.volume) },
+    { label: 'Market Cap', value: stockData.market_cap ? formatNumber(stockData.market_cap) : 'N/A', color: 'text-white' },
+    { label: 'P/E Ratio', value: stockData.pe_ratio?.toFixed(2) || 'N/A', color: getMetricColor('P/E Ratio', stockData.pe_ratio) },
+    { label: '52W High', value: `₹${stockData.fifty_two_week_high.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: 'text-white' },
+    { label: '52W Low', value: `₹${stockData.fifty_two_week_low.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: 'text-white' },
+    { label: 'Volume', value: formatNumber(stockData.volume), color: 'text-white' },
   ];
 
   const fundamentalMetrics = [
-    { label: 'EPS', value: stockData.eps ? `₹${stockData.eps.toFixed(2)}` : 'N/A' },
-    { label: 'P/B Ratio', value: stockData.pb_ratio?.toFixed(2) || 'N/A' },
-    { label: 'Book Value', value: stockData.book_value ? `₹${stockData.book_value.toFixed(2)}` : 'N/A' },
-    { label: 'Beta', value: stockData.beta?.toFixed(2) || 'N/A' },
-    { label: 'Div Yield', value: stockData.dividend_yield ? `${stockData.dividend_yield.toFixed(2)}%` : 'N/A' },
+    { label: 'EPS', value: stockData.eps ? `₹${stockData.eps.toFixed(2)}` : 'N/A', color: getMetricColor('EPS', stockData.eps) },
+    { label: 'P/B Ratio', value: stockData.pb_ratio?.toFixed(2) || 'N/A', color: getMetricColor('P/B Ratio', stockData.pb_ratio) },
+    { label: 'Book Value', value: stockData.book_value ? `₹${stockData.book_value.toFixed(2)}` : 'N/A', color: 'text-stock-info' },
+    { label: 'Beta', value: stockData.beta?.toFixed(2) || 'N/A', color: getMetricColor('Beta', stockData.beta) },
+    { label: 'Div Yield', value: stockData.dividend_yield ? `${stockData.dividend_yield.toFixed(2)}%` : 'N/A', color: getMetricColor('Div Yield', stockData.dividend_yield) },
   ];
 
   const financialHealth = [
-    { label: 'D/E Ratio', value: stockData.debt_to_equity?.toFixed(2) || 'N/A' },
-    { label: 'ROE', value: stockData.roe ? `${stockData.roe.toFixed(2)}%` : 'N/A' },
-    { label: 'Q Revenue', value: stockData.quarterly_revenue ? formatNumber(stockData.quarterly_revenue) : 'N/A' },
-    { label: 'Q Profit', value: stockData.quarterly_profit ? formatNumber(stockData.quarterly_profit) : 'N/A' },
-    { label: 'Target Price', value: stockData.target_price ? `₹${stockData.target_price.toFixed(0)}` : 'N/A' },
+    { label: 'D/E Ratio', value: stockData.debt_to_equity?.toFixed(2) || 'N/A', color: getMetricColor('D/E Ratio', stockData.debt_to_equity) },
+    { label: 'ROE', value: stockData.roe ? `${stockData.roe.toFixed(2)}%` : 'N/A', color: getMetricColor('ROE', stockData.roe) },
+    { label: 'Q Revenue', value: stockData.quarterly_revenue ? formatNumber(stockData.quarterly_revenue) : 'N/A', color: 'text-stock-primary' },
+    { label: 'Q Profit', value: stockData.quarterly_profit ? formatNumber(stockData.quarterly_profit) : 'N/A', color: 'text-stock-primary' },
+    { label: 'Target Price', value: stockData.target_price ? `₹${stockData.target_price.toFixed(0)}` : 'N/A', color: getMetricColor('Target Price', stockData.target_price) },
   ];
 
   const renderMetricWithTooltip = (label: string, value: string, colorClass: string = 'text-white') => (
     <div className="relative">
       <div className="flex items-center justify-center gap-1">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+        <p className="text-xs font-semibold text-stock-text-secondary uppercase tracking-wide">
           {label}
         </p>
         {METRIC_TOOLTIPS[label] && (
           <button
             onClick={() => setActiveTooltip(activeTooltip === label ? null : label)}
-            className="text-gray-500 hover:text-comic-yellow transition-colors"
+            className="text-stock-text-muted hover:text-stock-primary transition-colors"
           >
             <InformationCircleIcon className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
-      <p className={`font-bold ${colorClass} mt-1`}>{value}</p>
+      <p className={`font-semibold ${colorClass} mt-1`}>{value}</p>
       {activeTooltip === label && METRIC_TOOLTIPS[label] && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-comic-bg-dark border-2 border-comic-yellow text-xs text-gray-300 rounded shadow-lg">
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-stock-bg-card rounded-lg text-xs text-stock-text-primary shadow-lg">
           {METRIC_TOOLTIPS[label]}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-comic-yellow" />
         </div>
       )}
     </div>
@@ -101,18 +127,18 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
   const hasAnalyst = totalAnalystRecs > 0;
 
   return (
-    <div className="comic-panel p-6">
+    <div className="stock-card p-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="font-comic text-2xl text-white">
+            <h2 className="text-2xl font-bold text-white">
               {stockData.company_name || stockData.ticker}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="comic-chip bg-comic-bg-secondary text-xs">{stockData.ticker}</span>
+              <span className="stock-chip text-xs">{stockData.ticker}</span>
               {stockData.sector && (
-                <span className="comic-chip bg-comic-bg-secondary text-xs">{stockData.sector}</span>
+                <span className="stock-chip text-xs">{stockData.sector}</span>
               )}
             </div>
           </div>
@@ -121,19 +147,19 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
         {/* Price Section */}
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="font-comic text-3xl text-white">
+            <div className="text-3xl font-bold text-white">
               ₹{stockData.current_price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </div>
           </div>
           <div
-            className={`comic-btn px-4 py-2 ${
-              isPositive
-                ? 'bg-comic-green text-white'
-                : 'bg-comic-red text-white'
-            }`}
+            className="px-4 py-2 rounded-lg font-bold"
+            style={{
+              backgroundColor: isPositive ? 'rgba(0, 211, 149, 0.2)' : 'rgba(255, 71, 87, 0.2)',
+              color: isPositive ? '#00d395' : '#ff4757',
+            }}
           >
             <div className="flex items-center gap-1">
-              <span className="font-bold">
+              <span>
                 {isPositive ? '+' : ''}
                 {stockData.price_change_percent.toFixed(2)}%
               </span>
@@ -148,9 +174,10 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
         {basicMetrics.map((metric, idx) => (
           <div
             key={idx}
-            className="bg-comic-bg-dark border-2 border-gray-700 p-3 text-center hover:border-comic-yellow transition-colors"
+            className="p-3 rounded-lg text-center transition-colors"
+            style={{ backgroundColor: '#17181F' }}
           >
-            {renderMetricWithTooltip(metric.label, metric.value, 'text-white')}
+            {renderMetricWithTooltip(metric.label, metric.value, metric.color)}
           </div>
         ))}
       </div>
@@ -160,9 +187,10 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
         {fundamentalMetrics.map((metric, idx) => (
           <div
             key={idx}
-            className="bg-comic-bg-dark border-2 border-gray-700 p-3 text-center hover:border-comic-blue transition-colors"
+            className="p-3 rounded-lg text-center transition-colors"
+            style={{ backgroundColor: '#17181F' }}
           >
-            {renderMetricWithTooltip(metric.label, metric.value, 'text-comic-blue')}
+            {renderMetricWithTooltip(metric.label, metric.value, metric.color)}
           </div>
         ))}
       </div>
@@ -172,9 +200,10 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
         {financialHealth.map((metric, idx) => (
           <div
             key={idx}
-            className="bg-comic-bg-dark border-2 border-gray-700 p-3 text-center hover:border-comic-purple transition-colors"
+            className="p-3 rounded-lg text-center transition-colors"
+            style={{ backgroundColor: '#17181F' }}
           >
-            {renderMetricWithTooltip(metric.label, metric.value, 'text-comic-purple')}
+            {renderMetricWithTooltip(metric.label, metric.value, metric.color)}
           </div>
         ))}
       </div>
@@ -183,19 +212,19 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Shareholding Pattern */}
         {hasHoldings && (
-          <div className="bg-comic-bg-dark border-2 border-gray-700 p-4 relative">
+          <div className="p-4 rounded-lg relative" style={{ backgroundColor: '#17181F' }}>
             <div className="flex items-center gap-1 mb-3">
-              <p className="text-xs font-bold text-comic-yellow uppercase tracking-wide">
+              <p className="text-xs font-semibold text-stock-primary uppercase tracking-wide">
                 Shareholding Pattern
               </p>
               <button
                 onClick={() => setActiveTooltip(activeTooltip === 'Shareholding Pattern' ? null : 'Shareholding Pattern')}
-                className="text-gray-500 hover:text-comic-yellow transition-colors"
+                className="text-stock-text-muted hover:text-stock-primary transition-colors"
               >
                 <InformationCircleIcon className="w-3.5 h-3.5" />
               </button>
               {activeTooltip === 'Shareholding Pattern' && (
-                <div className="absolute z-50 top-12 left-4 w-64 p-3 bg-comic-bg-dark border-2 border-comic-yellow text-xs text-gray-300 rounded shadow-lg">
+                <div className="absolute z-50 top-12 left-4 w-64 p-3 bg-stock-bg-card rounded-lg text-xs text-stock-text-primary shadow-lg">
                   {METRIC_TOOLTIPS['Shareholding Pattern']}
                 </div>
               )}
@@ -203,15 +232,15 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
             <div className="space-y-2">
               {stockData.promoter_holding !== null && stockData.promoter_holding !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Promoters</span>
+                  <span className="text-sm text-stock-text-secondary">Promoters</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                    <div className="w-24 h-2 bg-black/40 rounded overflow-hidden">
                       <div
-                        className="h-full bg-comic-yellow rounded"
-                        style={{ width: `${Math.min(stockData.promoter_holding, 100)}%` }}
+                        className="h-full rounded"
+                        style={{ width: `${Math.min(stockData.promoter_holding, 100)}%`, backgroundColor: '#ffa502' }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-white w-12 text-right">
+                    <span className="text-sm font-semibold text-white w-12 text-right">
                       {stockData.promoter_holding.toFixed(1)}%
                     </span>
                   </div>
@@ -219,15 +248,15 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
               )}
               {stockData.fii_holding !== null && stockData.fii_holding !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">FIIs</span>
+                  <span className="text-sm text-stock-text-secondary">FIIs</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                    <div className="w-24 h-2 bg-black/40 rounded overflow-hidden">
                       <div
-                        className="h-full bg-comic-blue rounded"
-                        style={{ width: `${Math.min(stockData.fii_holding, 100)}%` }}
+                        className="h-full rounded"
+                        style={{ width: `${Math.min(stockData.fii_holding, 100)}%`, backgroundColor: '#1dd1a1' }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-white w-12 text-right">
+                    <span className="text-sm font-semibold text-white w-12 text-right">
                       {stockData.fii_holding.toFixed(1)}%
                     </span>
                   </div>
@@ -235,15 +264,15 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
               )}
               {stockData.dii_holding !== null && stockData.dii_holding !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">DIIs</span>
+                  <span className="text-sm text-stock-text-secondary">DIIs</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                    <div className="w-24 h-2 bg-black/40 rounded overflow-hidden">
                       <div
-                        className="h-full bg-comic-purple rounded"
-                        style={{ width: `${Math.min(stockData.dii_holding, 100)}%` }}
+                        className="h-full rounded"
+                        style={{ width: `${Math.min(stockData.dii_holding, 100)}%`, backgroundColor: '#5b8ef4' }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-white w-12 text-right">
+                    <span className="text-sm font-semibold text-white w-12 text-right">
                       {stockData.dii_holding.toFixed(1)}%
                     </span>
                   </div>
@@ -251,15 +280,15 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
               )}
               {stockData.public_holding !== null && stockData.public_holding !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Public</span>
+                  <span className="text-sm text-stock-text-secondary">Public</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                    <div className="w-24 h-2 bg-black/40 rounded overflow-hidden">
                       <div
-                        className="h-full bg-comic-green rounded"
-                        style={{ width: `${Math.min(stockData.public_holding, 100)}%` }}
+                        className="h-full rounded"
+                        style={{ width: `${Math.min(stockData.public_holding, 100)}%`, backgroundColor: '#00d395' }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-white w-12 text-right">
+                    <span className="text-sm font-semibold text-white w-12 text-right">
                       {stockData.public_holding.toFixed(1)}%
                     </span>
                   </div>
@@ -271,57 +300,54 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
 
         {/* Analyst Recommendations */}
         {hasAnalyst && (
-          <div className="bg-comic-bg-dark border-2 border-gray-700 p-4 relative">
+          <div className="p-4 rounded-lg relative" style={{ backgroundColor: '#17181F' }}>
             <div className="flex items-center gap-1 mb-3">
-              <p className="text-xs font-bold text-comic-yellow uppercase tracking-wide">
+              <p className="text-xs font-semibold text-stock-primary uppercase tracking-wide">
                 Analyst Recommendations
               </p>
               <button
                 onClick={() => setActiveTooltip(activeTooltip === 'Analyst Recommendations' ? null : 'Analyst Recommendations')}
-                className="text-gray-500 hover:text-comic-yellow transition-colors"
+                className="text-stock-text-muted hover:text-stock-primary transition-colors"
               >
                 <InformationCircleIcon className="w-3.5 h-3.5" />
               </button>
               {activeTooltip === 'Analyst Recommendations' && (
-                <div className="absolute z-50 top-12 left-4 w-64 p-3 bg-comic-bg-dark border-2 border-comic-yellow text-xs text-gray-300 rounded shadow-lg">
+                <div className="absolute z-50 top-12 left-4 w-64 p-3 bg-stock-bg-card rounded-lg text-xs text-stock-text-primary shadow-lg">
                   {METRIC_TOOLTIPS['Analyst Recommendations']}
                 </div>
               )}
             </div>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <div className="flex h-4 rounded overflow-hidden">
+                <div className="flex h-4 rounded overflow-hidden bg-black/40">
                   <div
-                    className="bg-comic-green"
-                    style={{ width: `${(stockData.analyst_buy / totalAnalystRecs) * 100}%` }}
+                    style={{ width: `${(stockData.analyst_buy / totalAnalystRecs) * 100}%`, backgroundColor: '#00d395' }}
                   />
                   <div
-                    className="bg-comic-yellow"
-                    style={{ width: `${(stockData.analyst_hold / totalAnalystRecs) * 100}%` }}
+                    style={{ width: `${(stockData.analyst_hold / totalAnalystRecs) * 100}%`, backgroundColor: '#ffa502' }}
                   />
                   <div
-                    className="bg-comic-red"
-                    style={{ width: `${(stockData.analyst_sell / totalAnalystRecs) * 100}%` }}
+                    style={{ width: `${(stockData.analyst_sell / totalAnalystRecs) * 100}%`, backgroundColor: '#ff4757' }}
                   />
                 </div>
               </div>
               <div className="flex gap-3 text-xs">
-                <span className="text-comic-green font-bold">{stockData.analyst_buy} Buy</span>
-                <span className="text-comic-yellow font-bold">{stockData.analyst_hold} Hold</span>
-                <span className="text-comic-red font-bold">{stockData.analyst_sell} Sell</span>
+                <span className="font-semibold" style={{ color: '#00d395' }}>{stockData.analyst_buy} Buy</span>
+                <span className="font-semibold" style={{ color: '#ffa502' }}>{stockData.analyst_hold} Hold</span>
+                <span className="font-semibold" style={{ color: '#ff4757' }}>{stockData.analyst_sell} Sell</span>
               </div>
             </div>
             {stockData.revenue_growth !== null && stockData.profit_growth !== null && (
-              <div className="flex gap-4 mt-3 pt-3 border-t border-gray-700">
+              <div className="flex gap-4 mt-3 pt-3 border-t border-white/5">
                 <div className="text-xs">
-                  <span className="text-gray-400">Rev Growth: </span>
-                  <span className={stockData.revenue_growth >= 0 ? 'text-comic-green' : 'text-comic-red'}>
+                  <span className="text-stock-text-secondary">Rev Growth (QoQ): </span>
+                  <span className="font-semibold" style={{ color: stockData.revenue_growth >= 0 ? '#00d395' : '#ff4757' }}>
                     {stockData.revenue_growth >= 0 ? '+' : ''}{stockData.revenue_growth.toFixed(1)}%
                   </span>
                 </div>
                 <div className="text-xs">
-                  <span className="text-gray-400">Profit Growth: </span>
-                  <span className={stockData.profit_growth >= 0 ? 'text-comic-green' : 'text-comic-red'}>
+                  <span className="text-stock-text-secondary">Profit Growth (QoQ): </span>
+                  <span className="font-semibold" style={{ color: stockData.profit_growth >= 0 ? '#00d395' : '#ff4757' }}>
                     {stockData.profit_growth >= 0 ? '+' : ''}{stockData.profit_growth.toFixed(1)}%
                   </span>
                 </div>

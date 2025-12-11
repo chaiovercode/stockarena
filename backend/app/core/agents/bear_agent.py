@@ -59,10 +59,36 @@ class BearAgent:
             max_iter=1,
         )
 
+    def _is_bearish_news(self, item: NewsItem) -> bool:
+        """Determine if news item has bearish sentiment based on keywords."""
+        bullish_keywords = [
+            'growth', 'surge', 'rally', 'profit', 'gain', 'up', 'rise', 'bullish', 'soar',
+            'strong', 'beat', 'exceed', 'positive', 'upgrade', 'buy', 'expansion', 'jump',
+            'breakthrough', 'success', 'record', 'high', 'boost', 'improve', 'recovery',
+            'outperform', 'momentum', 'opportunity', 'innovation', 'launch', 'partnership',
+            'revenue', 'earnings', 'dividend', 'invest', 'target', 'optimistic', 'bullish',
+            'upside', 'rebound', 'advancing', 'winning', 'favorable', 'strength'
+        ]
+        bearish_keywords = [
+            'loss', 'fall', 'drop', 'decline', 'down', 'bearish', 'weak', 'miss', 'sink',
+            'concern', 'risk', 'negative', 'downgrade', 'sell', 'warning', 'trouble', 'slide',
+            'problem', 'crisis', 'crash', 'plunge', 'slump', 'cut', 'reduce', 'layoff',
+            'losses', 'volatility', 'pressure', 'threat', 'disappointing', 'worst',
+            'downturn', 'struggle', 'failing', 'uncertain', 'pessimistic'
+        ]
+
+        text = (item.title + ' ' + (item.snippet or '')).lower()
+
+        bullish_score = sum(1 for keyword in bullish_keywords if keyword in text)
+        bearish_score = sum(1 for keyword in bearish_keywords if keyword in text)
+
+        # Require at least 1 bearish keyword and more bearish than bullish
+        return bearish_score > 0 and bearish_score > bullish_score
+
     def _build_sources(
         self, stock_data: StockData, news_items: list[NewsItem]
     ) -> list[Source]:
-        """Build list of sources used in analysis."""
+        """Build list of sources used in analysis, filtering for bearish-leaning news."""
         sources = [
             Source(
                 type="stock_data",
@@ -71,15 +97,35 @@ class BearAgent:
             )
         ]
 
+        # Filter for bearish-leaning news sources
+        bearish_news = [item for item in news_items if self._is_bearish_news(item)]
+
+        print(f"[BEAR AGENT] Total news items: {len(news_items)}, Bearish filtered: {len(bearish_news)}")
+
+        # If no bearish news found, take neutral/risk-focused news
+        if not bearish_news:
+            # Get news with risk-related keywords even if not strongly bearish
+            risk_news = []
+            for item in news_items:
+                text = (item.title + ' ' + (item.snippet or '')).lower()
+                if any(word in text for word in ['risk', 'volatility', 'uncertainty', 'challenge', 'competition']):
+                    risk_news.append(item)
+            news_to_use = risk_news[:5] if risk_news else news_items[3:8]  # Skip first 3 to avoid same as bull
+        else:
+            news_to_use = bearish_news[:5]  # Take top 5 bearish news
+
         # Only add news sources that have valid URLs and titles
         seen_sources = set()
-        for item in news_items[:3]:
+        count = 0
+        for item in news_to_use:
+            if count >= 3:  # Limit to 3 sources
+                break
             if item.url and item.source and item.source not in seen_sources:
                 # Create a meaningful source name from the article
                 source_name = item.source
                 if item.title:
                     # Truncate title if too long
-                    title_preview = item.title[:60] + "..." if len(item.title) > 60 else item.title
+                    title_preview = item.title[:50] + "..." if len(item.title) > 50 else item.title
                     source_name = f"{item.source}: {title_preview}"
 
                 sources.append(
@@ -90,6 +136,9 @@ class BearAgent:
                     )
                 )
                 seen_sources.add(item.source)
+                count += 1
+
+        print(f"[BEAR AGENT] Added {count} news sources")
         return sources
 
     async def analyze(
@@ -113,8 +162,12 @@ class BearAgent:
         Returns:
             AgentAnalysis with bearish arguments
         """
+        # Filter for bearish news items to focus analysis on negative/cautionary news
+        bearish_news = [item for item in news_items if self._is_bearish_news(item)]
+        news_to_analyze = bearish_news if bearish_news else news_items
+
         sources = self._build_sources(stock_data, news_items)
-        news_summary = self._format_news(news_items)
+        news_summary = self._format_news(news_to_analyze)
 
         horizon_label = TIME_HORIZON_LABELS.get(time_horizon, "Medium-term (1-3 months)")
         horizon_focus = TIME_HORIZON_FOCUS.get(time_horizon, "overall investment merit")

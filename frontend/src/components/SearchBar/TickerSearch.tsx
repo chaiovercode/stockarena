@@ -33,10 +33,10 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
   };
 
   return (
-    <div className="comic-panel p-6">
+    <div className="stock-card p-6" style={{ backgroundColor: '#17181F' }}>
       {/* Section Title */}
       <div className="mb-6">
-        <h2 className="font-comic text-2xl text-white">ENTER THE ARENA</h2>
+        <h2 className="text-xl font-semibold text-white">Search Stock</h2>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -44,7 +44,7 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ticker Input */}
           <div className="flex-1">
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+            <label className="block text-xs font-semibold text-stock-text-secondary uppercase mb-2">
               Stock Ticker
             </label>
             <input
@@ -53,20 +53,20 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               disabled={isLoading}
-              className="comic-input w-full h-14 px-4 text-lg font-bold placeholder:text-gray-600 placeholder:font-normal"
+              className="stock-input w-full h-12 px-4 text-base font-medium placeholder:text-stock-text-muted placeholder:font-normal"
             />
           </div>
 
           {/* Exchange Select */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+            <label className="block text-xs font-semibold text-stock-text-secondary uppercase mb-2">
               Exchange
             </label>
             <select
               value={exchange}
               onChange={(e) => setExchange(e.target.value)}
               disabled={isLoading}
-              className="comic-select h-14 px-4 font-bold cursor-pointer"
+              className="stock-select h-12 px-4 font-medium cursor-pointer"
             >
               <option value="NSE">NSE</option>
               <option value="BSE">BSE</option>
@@ -75,15 +75,15 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
 
           {/* Time Horizon Select */}
           <div className="relative group">
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+            <label className="block text-xs font-semibold text-stock-text-secondary uppercase mb-2 flex items-center gap-1">
               Time Horizon
-              <span className="cursor-help text-gray-500 hover:text-comic-yellow">ⓘ</span>
+              <span className="cursor-help text-stock-text-muted hover:text-stock-primary">ⓘ</span>
             </label>
             <select
               value={timeHorizon}
               onChange={(e) => setTimeHorizon(e.target.value as TimeHorizon)}
               disabled={isLoading}
-              className="comic-select h-14 px-4 font-bold cursor-pointer"
+              className="stock-select h-12 px-4 font-medium cursor-pointer"
             >
               {TIME_HORIZON_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -92,23 +92,23 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
               ))}
             </select>
             {/* Tooltip */}
-            <div className="absolute left-0 top-full mt-2 w-72 p-3 bg-comic-bg-dark border-2 border-gray-700 text-xs text-gray-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-lg">
-              <p className="mb-2"><span className="text-comic-yellow font-bold">Short-term:</span> Momentum, news sentiment, technical patterns for quick trades</p>
-              <p className="mb-2"><span className="text-comic-yellow font-bold">Medium-term:</span> Quarterly results, sector trends, upcoming events</p>
-              <p><span className="text-comic-yellow font-bold">Long-term:</span> Valuation, competitive moat, growth story for investors</p>
+            <div className="absolute left-0 top-full mt-2 w-72 p-3 bg-stock-bg-card rounded-lg text-xs text-stock-text-primary opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-lg">
+              <p className="mb-2"><span className="text-stock-primary font-semibold">Short-term:</span> Momentum, news sentiment, technical patterns for quick trades</p>
+              <p className="mb-2"><span className="text-stock-primary font-semibold">Medium-term:</span> Quarterly results, sector trends, upcoming events</p>
+              <p><span className="text-stock-primary font-semibold">Long-term:</span> Valuation, competitive moat, growth story for investors</p>
             </div>
           </div>
 
           {/* Rounds Select */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+            <label className="block text-xs font-semibold text-stock-text-secondary uppercase mb-2">
               Rounds
             </label>
             <select
               value={maxRounds}
               onChange={(e) => setMaxRounds(e.target.value)}
               disabled={isLoading}
-              className="comic-select h-14 px-4 font-bold cursor-pointer"
+              className="stock-select h-12 px-4 font-medium cursor-pointer"
             >
               <option value="1">1 Round</option>
               <option value="2">2 Rounds</option>
@@ -121,7 +121,7 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
             <button
               type="submit"
               disabled={!ticker.trim() || isLoading}
-              className="comic-btn h-14 px-8 bg-comic-yellow text-black font-comic text-xl flex items-center gap-2 whitespace-nowrap"
+              className="stock-btn-primary h-12 px-8 text-base font-semibold flex items-center gap-2 whitespace-nowrap"
             >
               {isLoading ? (
                 <>
@@ -130,26 +130,26 @@ export function TickerSearch({ onSearch, isLoading }: TickerSearchProps) {
                     <div className="loading-dot bg-white" />
                     <div className="loading-dot bg-white" />
                   </div>
-                  <span>FIGHTING...</span>
+                  <span>Analyzing...</span>
                 </>
               ) : (
-                <span>START BATTLE!</span>
+                <span>Analyze</span>
               )}
             </button>
           </div>
         </div>
 
         {/* Quick Picks */}
-        <div className="mt-6 pt-6 border-t-2 border-gray-700">
+        <div className="mt-6 pt-6">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-bold text-gray-500 uppercase">Quick Pick:</span>
+            <span className="text-xs font-semibold text-stock-text-muted uppercase">Quick Pick:</span>
             {popularTickers.map((item) => (
               <button
                 key={item.value}
                 type="button"
                 onClick={() => handleQuickSearch(item.value)}
                 disabled={isLoading}
-                className="comic-btn bg-comic-bg-secondary text-white px-4 py-2 text-sm hover:bg-comic-purple disabled:opacity-50"
+                className="stock-btn text-white px-4 py-2 text-sm hover:bg-stock-bg-panel disabled:opacity-50"
               >
                 {item.label}
               </button>

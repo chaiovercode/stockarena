@@ -5,13 +5,16 @@ from app.core.graph.state import (
     DebateState,
     StockData,
     NewsItem,
+    MarketIndex,
     StreamUpdate,
 )
 from app.services.stock_service import get_stock_data
 from app.services.news_service import search_news, build_news_query
+from app.services.market_service import fetch_market_indices
 from app.core.agents.bull_agent import BullAgent
 from app.core.agents.bear_agent import BearAgent
 from app.core.agents.moderator_agent import ModeratorAgent
+from app.core.agents.summary_agent import SummaryAgent
 
 
 async def fetch_data_node(state: DebateState) -> dict:
@@ -42,25 +45,86 @@ async def fetch_data_node(state: DebateState) -> dict:
         }
 
     # Now search news with company name for better filtering
+    # Fetch more news (30) to allow agents to filter for their perspectives
     company_name = stock_data.company_name
     news_query = build_news_query(ticker, company_name)
     news_items = await search_news(
         news_query,
-        max_results=10,
+        max_results=30,
         ticker=ticker,
         company_name=company_name,
     )
 
+    # Fetch market indices for immediate display
+    market_data_raw = await fetch_market_indices()
+    market_indices = [MarketIndex(**idx) for idx in market_data_raw.get('indices', [])]
+
     return {
         "stock_data": stock_data,
         "news_items": news_items,
-        "phase": "bull_analyzing",
+        "market_data": market_indices,
+        "phase": "summarizing",
         "stream_updates": [
             StreamUpdate(
                 type="data_fetched",
                 stock_data=stock_data.model_dump(),
                 news_items=[item.model_dump() for item in news_items],
+                market_data=[idx.model_dump() for idx in market_indices],
                 message=f"Fetched data for {stock_data.company_name or ticker}",
+            )
+        ],
+    }
+
+
+async def summary_node(state: DebateState) -> dict:
+    """
+    Node: Generate market + stock summary before debate starts.
+
+    Args:
+        state: Current debate state
+
+    Returns:
+        Updated state fields with market data and summary analysis
+    """
+    # Fetch market indices
+    market_data_raw = await fetch_market_indices()
+    market_indices = [MarketIndex(**idx) for idx in market_data_raw.get('indices', [])]
+
+    # Generate summary using AI agent
+    summary_agent = SummaryAgent()
+    summary_dict = await summary_agent.generate_summary(
+        stock_data=state["stock_data"],
+        news_items=state["news_items"],
+        market_data=market_data_raw,
+    )
+
+    # Convert to SummaryAnalysis model
+    from app.core.graph.state import SummaryAnalysis, TopHeadline
+
+    top_headlines = [
+        TopHeadline(**headline)
+        for headline in summary_dict.get('top_headlines', [])
+    ]
+
+    summary_analysis = SummaryAnalysis(
+        market_overview=summary_dict.get('market_overview', ''),
+        stock_context=summary_dict.get('stock_context', ''),
+        key_catalysts=summary_dict.get('key_catalysts', []),
+        top_headlines=top_headlines,
+        market_sentiment=summary_dict.get('market_sentiment', 'neutral'),
+        confidence_score=summary_dict.get('confidence_score', 0.7),
+    )
+
+    return {
+        "market_data": market_indices,
+        "summary_analysis": summary_analysis,
+        "phase": "bull_analyzing",
+        "stream_updates": [
+            StreamUpdate(
+                type="summary_complete",
+                message="Market summary generated",
+                market_data=[idx.model_dump() for idx in market_indices],
+                summary_analysis=summary_analysis.model_dump(),
             )
         ],
     }

@@ -13,6 +13,14 @@ class AgentArgumentResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
 
 
+class SourceResponse(BaseModel):
+    """Data source used in analysis."""
+
+    type: str = Field(..., description="Source type (e.g., 'stock_data', 'news')")
+    name: str = Field(..., description="Source name or title")
+    url: str | None = Field(None, description="URL to the source")
+
+
 class AgentAnalysisResponse(BaseModel):
     """Complete analysis from an agent."""
 
@@ -24,6 +32,7 @@ class AgentAnalysisResponse(BaseModel):
         description="Final recommendation (only for moderator)",
     )
     confidence_score: float = Field(..., ge=0.0, le=1.0)
+    sources: list[SourceResponse] = Field(default_factory=list, description="Data sources used in analysis")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -65,6 +74,36 @@ class NewsItemResponse(BaseModel):
     date: str
 
 
+class MarketIndexResponse(BaseModel):
+    """Market index data."""
+
+    name: str = Field(..., description="Index name (e.g., SENSEX, NIFTY 50)")
+    symbol: str = Field(..., description="Index symbol")
+    value: float = Field(..., description="Current index value")
+    change: float = Field(..., description="Change in points")
+    change_percent: float = Field(..., description="Percentage change")
+    trend: str = Field(..., description="Trend direction: up, down, or flat")
+
+
+class TopHeadlineResponse(BaseModel):
+    """Top headline for summary."""
+
+    title: str = Field(..., description="Headline text")
+    source: str = Field(..., description="News source")
+    url: str = Field(..., description="Article URL")
+
+
+class SummaryAnalysisResponse(BaseModel):
+    """AI-generated market + stock summary."""
+
+    market_overview: str = Field(..., description="2-3 sentence market overview")
+    stock_context: str = Field(..., description="2-3 sentence stock context")
+    key_catalysts: list[str] = Field(default_factory=list, description="Key events affecting stock")
+    top_headlines: list[TopHeadlineResponse] = Field(default_factory=list, description="Top 3 headlines")
+    market_sentiment: Literal["bullish", "bearish", "neutral"] = Field(default="neutral")
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="Summary confidence")
+
+
 class DebateResponse(BaseModel):
     """Complete debate response."""
 
@@ -72,6 +111,8 @@ class DebateResponse(BaseModel):
     ticker: str
     stock_data: StockDataResponse
     news_items: list[NewsItemResponse] = Field(default_factory=list)
+    market_data: list[MarketIndexResponse] | None = Field(default=None, description="Market indices data")
+    summary_analysis: SummaryAnalysisResponse | None = Field(default=None, description="Market + stock summary")
     bull_analysis: AgentAnalysisResponse
     bear_analysis: AgentAnalysisResponse
     moderator_analysis: AgentAnalysisResponse

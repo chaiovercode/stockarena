@@ -75,10 +75,35 @@ export interface NewsItem {
   date: string;
 }
 
+export interface MarketIndex {
+  name: string;
+  symbol: string;
+  value: number;
+  change: number;
+  change_percent: number;
+  trend: 'up' | 'down' | 'flat';
+}
+
+export interface TopHeadline {
+  title: string;
+  source: string;
+  url: string;
+}
+
+export interface SummaryAnalysis {
+  market_overview: string;
+  stock_context: string;
+  key_catalysts: string[];
+  top_headlines: TopHeadline[];
+  market_sentiment: 'bullish' | 'bearish' | 'neutral';
+  confidence_score: number;
+}
+
 export type DebatePhase =
   | 'idle'
   | 'connecting'
   | 'fetching'
+  | 'summarizing'
   | 'bull_analyzing'
   | 'bear_analyzing'
   | 'moderating'
@@ -101,6 +126,8 @@ export interface DebateState {
   maxRounds: number;
   stockData: StockData | null;
   newsItems: NewsItem[];
+  marketData: MarketIndex[] | null;
+  summaryAnalysis: SummaryAnalysis | null;
   bullAnalysis: AgentAnalysis | null;
   bearAnalysis: AgentAnalysis | null;
   moderatorAnalysis: AgentAnalysis | null;
@@ -111,6 +138,7 @@ export interface StreamUpdate {
   type:
     | 'started'
     | 'data_fetched'
+    | 'summary_complete'
     | 'agent_start'
     | 'agent_response'
     | 'token'
@@ -124,6 +152,8 @@ export interface StreamUpdate {
   analysis?: AgentAnalysis;
   stock_data?: StockData;
   news_items?: NewsItem[];
+  market_data?: MarketIndex[];
+  summary_analysis?: SummaryAnalysis;
   error?: string;
   round_number?: number;
   message?: string;
