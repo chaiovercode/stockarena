@@ -168,9 +168,14 @@ export function Dashboard() {
       {/* Footer */}
       <footer className="mt-auto" style={{ backgroundColor: '#17181F' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <p className="text-center text-sm text-stock-text-muted">
-            Powered by <span className="text-stock-primary font-medium">LangGraph</span>, <span className="text-stock-info font-medium">CrewAI</span> & <span className="text-stock-success font-medium">OpenAI</span>
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-stock-text-muted">
+              AI content may include mistakes. <a href="#" className="underline hover:text-stock-primary transition-colors">Learn more</a>
+            </p>
+            <p className="text-sm text-stock-text-muted">
+              Powered by <span className="text-stock-primary font-medium">LangGraph</span>, <span className="text-stock-info font-medium">CrewAI</span> & <span className="text-stock-success font-medium">OpenAI</span>
+            </p>
+          </div>
         </div>
       </footer>
     </div>
