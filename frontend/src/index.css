@@ -317,7 +317,7 @@ body {
 
 /* Ticker Tape - Professional Stock App Style */
 .ticker-tape-container {
-  background: var(--bg-secondary);
+  background: #17181F;
   overflow: hidden;
   height: 40px;
   position: relative;

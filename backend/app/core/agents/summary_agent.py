@@ -79,25 +79,30 @@ class SummaryAgent:
             1. "market_overview": 2-3 sentences about overall market sentiment today. What's driving Indian markets?
 
             2. "stock_context": 2-3 sentences about how this specific stock is positioned in current market conditions.
-               Is it moving with the market or independent? Any stock-specific factors?
+               Is it moving with the market or independent? Focus on price action, technical levels, and sector trends.
+               If no news is available, focus on price momentum, market cap changes, and sector performance.
 
-            3. "key_catalysts": Array of 3 major events/factors affecting this stock right now.
-               Focus on actionable insights.
+            3. "key_catalysts": Array of 3-5 major events/factors affecting this stock right now.
+               If news is limited, include: recent price movements, technical levels (support/resistance),
+               sector trends, and market conditions. Focus on actionable insights.
 
-            4. "top_headlines": Array of 3 most important news items. Each item should have:
+            4. "top_headlines": Array of top news items (if available). Each item should have:
                - "title": The headline
                - "source": News source name
                - "url": Article URL
+               If no news available, return empty array [].
 
             5. "market_sentiment": Overall sentiment - choose one:
                - "bullish": Positive momentum, favorable conditions
                - "bearish": Negative momentum, risk factors dominate
                - "neutral": Mixed signals, unclear direction
+               Base this on price action and market context even if news is unavailable.
 
-            6. "confidence_score": Number between 0.5-0.95 based on:
+            6. "confidence_score": Number between 0.4-0.95 based on:
                - Data quality and freshness
                - Clarity of market signals
-               - Consistency across news sources
+               - Availability of news (lower if no news, but still provide analysis)
+               If no news available, use 0.5-0.6 range.
 
             Focus on connecting stock performance to broader market trends. Be direct and actionable.
             Return ONLY valid JSON, no additional text.
@@ -125,7 +130,11 @@ class SummaryAgent:
     def _format_news(self, news_items: list[NewsItem]) -> str:
         """Format news items for prompt."""
         if not news_items:
-            return "No recent news available"
+            return "No recent news available - analysis will focus on price data and market context"
+
+        # Check if only fallback news item exists
+        if len(news_items) == 1 and news_items[0].source == "StockArena":
+            return "No recent news articles found - analysis will be based on stock price data, technical indicators, and market context only"
 
         lines = []
         for i, item in enumerate(news_items, 1):

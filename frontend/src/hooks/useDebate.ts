@@ -56,18 +56,25 @@ export function useDebate() {
         break;
 
       case 'summary_complete':
-        console.log('[useDebate] summary_complete received:', {
+        console.log('[useDebate] ===== SUMMARY_COMPLETE EVENT RECEIVED =====');
+        console.log('[useDebate] summary_complete data:', {
           hasSummaryAnalysis: !!update.summary_analysis,
           hasMarketData: !!update.market_data,
           summaryAnalysis: update.summary_analysis,
           marketData: update.market_data
         });
-        setState((prev) => ({
-          ...prev,
-          summaryAnalysis: update.summary_analysis || null,
-          marketData: update.market_data || prev.marketData,
-          phase: 'bull_analyzing',
-        }));
+        console.log('[useDebate] Setting state with summary...');
+        setState((prev) => {
+          const newState = {
+            ...prev,
+            summaryAnalysis: update.summary_analysis || null,
+            marketData: update.market_data || prev.marketData,
+            phase: 'bull_analyzing',
+          };
+          console.log('[useDebate] New state summaryAnalysis:', newState.summaryAnalysis);
+          return newState;
+        });
+        console.log('[useDebate] ===== SUMMARY STATE UPDATED =====');
         break;
 
       case 'agent_start':

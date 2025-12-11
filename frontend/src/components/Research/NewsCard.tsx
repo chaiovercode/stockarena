@@ -20,34 +20,34 @@ export function NewsCard({ item, index }: NewsCardProps) {
   return (
     <article
       onClick={handleClick}
-      className={`stock-card bg-stock-bg-panel p-5 min-h-[180px] cursor-pointer transition-all duration-300 hover:border-stock-primary/50 hover:shadow-lg group relative overflow-hidden`}
+      className={`stock-card bg-stock-bg-panel p-4 cursor-pointer transition-all duration-300 hover:border-stock-primary/50 hover:shadow-lg group relative overflow-hidden`}
       style={{
         animationDelay: `${index * 50}ms`,
       }}
     >
       {/* External Link Icon */}
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <ArrowTopRightOnSquareIcon className="w-5 h-5 text-stock-primary" />
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <ArrowTopRightOnSquareIcon className="w-4 h-4 text-stock-primary" />
       </div>
 
       {/* Content */}
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col">
         {/* Title */}
-        <h3 className="text-base font-semibold text-white mb-3 line-clamp-2 pr-6">
+        <h3 className="text-sm font-semibold text-white mb-2 pr-6 leading-snug">
           {item.title}
         </h3>
 
         {/* Snippet */}
         {item.snippet && (
-          <p className="text-sm text-stock-text-secondary leading-relaxed mb-4 line-clamp-3 flex-1">
+          <p className="text-xs text-stock-text-secondary leading-relaxed mb-3 line-clamp-2">
             {item.snippet}
           </p>
         )}
 
         {/* Footer: Source Badge + Date */}
-        <div className="flex items-center justify-between gap-3 mt-auto">
+        <div className="flex items-center justify-between gap-2">
           <div
-            className="inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold"
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
             style={{
               backgroundColor: `${sourceColor}20`,
               color: sourceColor,

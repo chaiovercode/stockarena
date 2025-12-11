@@ -27,6 +27,9 @@ async def fetch_data_node(state: DebateState) -> dict:
     Returns:
         Updated state fields
     """
+    print("=" * 80)
+    print("[FETCH_DATA_NODE] Starting data fetch")
+    print("=" * 80)
     ticker = state["ticker"]
 
     # First fetch stock data to get company name
@@ -54,6 +57,32 @@ async def fetch_data_node(state: DebateState) -> dict:
         ticker=ticker,
         company_name=company_name,
     )
+
+    # If no news found, try a broader search without strict filtering
+    if not news_items:
+        print(f"[FETCH_DATA] No news found with strict filtering. Trying broader search for {ticker}")
+        # Try a more general search
+        broader_query = build_news_query(ticker, None)
+        news_items = await search_news(
+            broader_query,
+            max_results=30,
+            ticker=None,  # Skip relevance filtering
+            company_name=None,
+        )
+        print(f"[FETCH_DATA] Broader search returned {len(news_items)} items")
+
+    # If still no news, create a synthetic news item indicating no news
+    if not news_items:
+        print(f"[FETCH_DATA] Still no news found. Creating fallback item.")
+        news_items = [
+            NewsItem(
+                title=f"No recent news articles found for {company_name or ticker}",
+                snippet="Analysis will be based on stock price data, technical indicators, and market context only.",
+                source="StockArena",
+                url="",
+                date="",
+            )
+        ]
 
     # Fetch market indices for immediate display
     market_data_raw = await fetch_market_indices()
@@ -86,17 +115,25 @@ async def summary_node(state: DebateState) -> dict:
     Returns:
         Updated state fields with market data and summary analysis
     """
+    print("=" * 80)
+    print(f"[SUMMARY_NODE] >>>>>> STARTING SUMMARY GENERATION <<<<<<")
+    print(f"[SUMMARY_NODE] Ticker: {state['ticker']}")
+    print("=" * 80)
+
     # Fetch market indices
     market_data_raw = await fetch_market_indices()
     market_indices = [MarketIndex(**idx) for idx in market_data_raw.get('indices', [])]
+    print(f"[SUMMARY_NODE] Fetched {len(market_indices)} market indices")
 
     # Generate summary using AI agent
     summary_agent = SummaryAgent()
+    print(f"[SUMMARY_NODE] Calling summary agent...")
     summary_dict = await summary_agent.generate_summary(
         stock_data=state["stock_data"],
         news_items=state["news_items"],
         market_data=market_data_raw,
     )
+    print(f"[SUMMARY_NODE] Summary generated: {summary_dict.keys()}")
 
     # Convert to SummaryAnalysis model
     from app.core.graph.state import SummaryAnalysis, TopHeadline
@@ -115,18 +152,22 @@ async def summary_node(state: DebateState) -> dict:
         confidence_score=summary_dict.get('confidence_score', 0.7),
     )
 
+    stream_update = StreamUpdate(
+        type="summary_complete",
+        message="Market summary generated",
+        market_data=[idx.model_dump() for idx in market_indices],
+        summary_analysis=summary_analysis.model_dump(),
+    )
+
+    print(f"[SUMMARY_NODE] Streaming update: type={stream_update.type}")
+    print(f"[SUMMARY_NODE] Market data count: {len(market_indices)}")
+    print(f"[SUMMARY_NODE] Summary analysis: {summary_analysis.market_overview[:100]}...")
+
     return {
         "market_data": market_indices,
         "summary_analysis": summary_analysis,
         "phase": "bull_analyzing",
-        "stream_updates": [
-            StreamUpdate(
-                type="summary_complete",
-                message="Market summary generated",
-                market_data=[idx.model_dump() for idx in market_indices],
-                summary_analysis=summary_analysis.model_dump(),
-            )
-        ],
+        "stream_updates": [stream_update],
     }
 
 

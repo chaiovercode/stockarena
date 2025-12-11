@@ -152,6 +152,8 @@ class StreamUpdate(BaseModel):
     analysis: dict | None = None
     stock_data: dict | None = None
     news_items: list[dict] | None = None
+    market_data: list[dict] | None = None
+    summary_analysis: dict | None = None
     error: str | None = None
     round_number: int | None = None
     message: str | None = None

@@ -18,36 +18,33 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
     hasMarketData: !!marketData,
     marketDataLength: marketData?.length || 0,
     isLoading,
-    ticker
+    ticker,
+    summary: summary,
+    marketData: marketData
   });
 
+  // Always show the summary section, even if empty
   // Loading skeleton
-  if (isLoading && !summary) {
+  if (isLoading) {
     return (
-      <div className="w-full bg-stock-bg-secondary border-b border-stock-bg-panel mb-6">
-        <div className="max-w-[1400px] mx-auto px-6 py-6">
-          <div className="animate-pulse">
-            <div className="h-6 w-64 bg-stock-bg-panel rounded mb-6" />
-            <div className="flex gap-4 mb-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-stock-bg-panel p-3 min-w-[150px] rounded-lg">
-                  <div className="h-3 w-20 bg-stock-bg rounded mb-2" />
-                  <div className="h-5 w-24 bg-stock-bg rounded mb-1" />
-                  <div className="h-4 w-16 bg-stock-bg rounded" />
-                </div>
-              ))}
+      <div className="bg-transparent p-4 rounded-lg">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-48 bg-stock-bg-panel rounded" />
+          <div className="space-y-3">
+            <div className="bg-stock-bg-panel p-3 rounded-lg">
+              <div className="h-3 w-16 bg-stock-bg rounded mb-2" />
+              <div className="h-5 w-20 bg-stock-bg rounded mb-1" />
+              <div className="h-4 w-12 bg-stock-bg rounded" />
             </div>
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div className="bg-stock-bg-panel p-4 rounded-lg">
-                <div className="h-4 w-32 bg-stock-bg rounded mb-2" />
-                <div className="h-3 w-full bg-stock-bg rounded mb-2" />
-                <div className="h-3 w-full bg-stock-bg rounded" />
-              </div>
-              <div className="bg-stock-bg-panel p-4 rounded-lg">
-                <div className="h-4 w-32 bg-stock-bg rounded mb-2" />
-                <div className="h-3 w-full bg-stock-bg rounded mb-2" />
-                <div className="h-3 w-full bg-stock-bg rounded" />
-              </div>
+            <div className="bg-stock-bg-panel p-4 rounded-lg">
+              <div className="h-4 w-24 bg-stock-bg rounded mb-2" />
+              <div className="h-3 w-full bg-stock-bg rounded mb-2" />
+              <div className="h-3 w-full bg-stock-bg rounded" />
+            </div>
+            <div className="bg-stock-bg-panel p-4 rounded-lg">
+              <div className="h-4 w-24 bg-stock-bg rounded mb-2" />
+              <div className="h-3 w-full bg-stock-bg rounded mb-2" />
+              <div className="h-3 w-3/4 bg-stock-bg rounded" />
             </div>
           </div>
         </div>
@@ -58,24 +55,20 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
   // Show market data even if summary hasn't arrived yet
   if (!summary && marketData && marketData.length > 0) {
     return (
-      <div className="w-full bg-stock-bg-secondary border-b border-stock-bg-panel mb-6">
-        <div className="max-w-[1400px] mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white">
-              What's happening with {ticker} today?
-            </h3>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
-            {marketData.map((index) => (
-              <div
-                key={index.symbol}
-                className="bg-stock-bg-panel rounded-lg p-3 min-w-[150px] flex-shrink-0 hover:bg-stock-bg-panel/80 transition-colors"
-              >
-                <div className="text-xs text-stock-text-muted font-medium mb-1">
+      <div className="bg-transparent p-4 rounded-lg">
+        <h3 className="text-lg font-bold text-white mb-4">
+          Market Overview
+        </h3>
+        <div className="space-y-2">
+          {marketData.map((index) => (
+            <div
+              key={index.symbol}
+              className="rounded-lg p-3 hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#17181F' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-stock-text-muted font-medium">
                   {index.name}
-                </div>
-                <div className="text-lg font-bold text-white mb-1">
-                  {index.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </div>
                 <div
                   className={`text-sm font-semibold ${
@@ -86,110 +79,115 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
                   {Math.abs(index.change_percent).toFixed(2)}%
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-4 text-sm text-stock-text-muted">
-            Generating market analysis...
-          </div>
+              <div className="text-base font-bold text-white mt-1">
+                {index.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 text-xs text-stock-text-muted">
+          Generating analysis...
         </div>
       </div>
     );
   }
 
   // Don't show anything if not loading, no summary, and no market data
-  if (!summary && !isLoading) {
-    return null;
+  if (!summary && !isLoading && (!marketData || marketData.length === 0)) {
+    return (
+      <div className="bg-transparent p-4 rounded-lg">
+        <h3 className="text-lg font-bold text-white mb-4">Summary</h3>
+        <p className="text-sm text-stock-text-muted">
+          Waiting for analysis to begin...
+        </p>
+      </div>
+    );
   }
 
-  // If we have summary, show it
+  // If we don't have summary yet, return loading/market data state (already handled above)
   if (!summary) {
     return null;
   }
 
   return (
-    <div className="w-full bg-stock-bg-secondary border-b border-stock-bg-panel mb-6">
-      <div className="max-w-[1400px] mx-auto px-6 py-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">
-            What's happening with {ticker} today?
-          </h3>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 hover:bg-stock-bg-panel rounded-lg transition-colors"
-          >
-            {isExpanded ? (
-              <ChevronUpIcon className="w-5 h-5 text-stock-text-secondary" />
-            ) : (
-              <ChevronDownIcon className="w-5 h-5 text-stock-text-secondary" />
-            )}
-          </button>
-        </div>
+    <div className="bg-transparent space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-white">Summary</h3>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-1 hover:bg-stock-bg-panel rounded transition-colors"
+        >
+          {isExpanded ? (
+            <ChevronUpIcon className="w-4 h-4 text-stock-text-secondary" />
+          ) : (
+            <ChevronDownIcon className="w-4 h-4 text-stock-text-secondary" />
+          )}
+        </button>
+      </div>
 
       {isExpanded && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Market Indices Strip */}
+        <div className="space-y-3 animate-fade-in">
+          {/* Market Indices */}
           {marketData && marketData.length > 0 && (
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-stock-text-muted uppercase">Market Indices</h4>
               {marketData.map((index) => (
                 <div
                   key={index.symbol}
-                  className="bg-stock-bg-panel rounded-lg p-3 min-w-[150px] flex-shrink-0 hover:bg-stock-bg-panel/80 transition-colors"
+                  className="rounded-lg p-3 hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: '#17181F' }}
                 >
-                  <div className="text-xs text-stock-text-muted font-medium mb-1">
-                    {index.name}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-stock-text-muted font-medium">
+                      {index.name}
+                    </div>
+                    <div
+                      className={`text-sm font-semibold ${
+                        index.change >= 0 ? 'text-stock-success' : 'text-stock-danger'
+                      }`}
+                    >
+                      {index.change >= 0 ? '↑' : '↓'}{' '}
+                      {Math.abs(index.change_percent).toFixed(2)}%
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-white mb-1">
+                  <div className="text-base font-bold text-white mt-1">
                     {index.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                  </div>
-                  <div
-                    className={`text-sm font-semibold ${
-                      index.change >= 0 ? 'text-stock-success' : 'text-stock-danger'
-                    }`}
-                  >
-                    {index.change >= 0 ? '↑' : '↓'}{' '}
-                    {Math.abs(index.change_percent).toFixed(2)}%
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* AI-Generated Summary */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Market Overview */}
-            <div className="bg-stock-bg-panel rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-stock-primary mb-2 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-stock-primary" />
-                Market Overview
-              </h4>
-              <p className="text-sm text-stock-text-primary leading-relaxed">
-                {summary.market_overview}
-              </p>
-            </div>
+          {/* Market Overview */}
+          <div className="rounded-lg p-4" style={{ backgroundColor: '#17181F' }}>
+            <h4 className="text-xs font-semibold text-stock-primary mb-2 uppercase">
+              Market Overview
+            </h4>
+            <p className="text-sm text-stock-text-primary leading-relaxed">
+              {summary.market_overview}
+            </p>
+          </div>
 
-            {/* Stock Context */}
-            <div className="bg-stock-bg-panel rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-stock-success mb-2 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-stock-success" />
-                Stock Context
-              </h4>
-              <p className="text-sm text-stock-text-primary leading-relaxed">
-                {summary.stock_context}
-              </p>
-            </div>
+          {/* Stock Context */}
+          <div className="rounded-lg p-4" style={{ backgroundColor: '#17181F' }}>
+            <h4 className="text-xs font-semibold text-stock-success mb-2 uppercase">
+              Stock Context
+            </h4>
+            <p className="text-sm text-stock-text-primary leading-relaxed">
+              {summary.stock_context}
+            </p>
           </div>
 
           {/* Key Catalysts */}
           {summary.key_catalysts.length > 0 && (
-            <div className="bg-stock-bg-panel rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-stock-warning mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-stock-warning" />
+            <div className="rounded-lg p-4" style={{ backgroundColor: '#17181F' }}>
+              <h4 className="text-xs font-semibold text-stock-warning mb-3 uppercase">
                 Key Catalysts
               </h4>
               <ul className="space-y-2">
                 {summary.key_catalysts.map((catalyst, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
+                  <li key={idx} className="flex items-start gap-2">
                     <span className="flex-shrink-0 w-5 h-5 rounded-full bg-stock-warning/20 text-stock-warning flex items-center justify-center text-xs font-bold mt-0.5">
                       {idx + 1}
                     </span>
@@ -204,9 +202,8 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
 
           {/* Top Headlines */}
           {summary.top_headlines.length > 0 && (
-            <div className="bg-stock-bg-panel rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-stock-primary mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-stock-primary" />
+            <div className="rounded-lg p-4" style={{ backgroundColor: '#17181F' }}>
+              <h4 className="text-xs font-semibold text-stock-primary mb-3 uppercase">
                 Top Headlines
               </h4>
               <div className="space-y-2">
@@ -216,17 +213,17 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
                     href={headline.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block p-2 rounded-lg hover:bg-stock-bg transition-colors group"
+                    className="block p-2 rounded hover:bg-stock-bg transition-colors group"
                   >
                     <div className="flex items-start gap-2">
-                      <span className="flex-shrink-0 text-xs font-bold text-stock-text-muted mt-0.5">
+                      <span className="flex-shrink-0 text-xs font-bold text-stock-text-muted">
                         {idx + 1}.
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm text-stock-text-primary group-hover:text-stock-primary transition-colors leading-relaxed">
+                        <p className="text-xs text-stock-text-primary group-hover:text-stock-primary transition-colors leading-relaxed">
                           {headline.title}
                         </p>
-                        <span className="text-xs text-stock-text-muted">
+                        <span className="text-[10px] text-stock-text-muted">
                           {headline.source}
                         </span>
                       </div>
@@ -238,28 +235,29 @@ export function SummaryCard({ summary, marketData, ticker, isLoading }: SummaryC
           )}
 
           {/* Sentiment Badge */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-stock-text-muted">Market Sentiment:</span>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  summary.market_sentiment === 'bullish'
-                    ? 'bg-stock-success/20 text-stock-success'
-                    : summary.market_sentiment === 'bearish'
-                    ? 'bg-stock-danger/20 text-stock-danger'
-                    : 'bg-stock-text-muted/20 text-stock-text-muted'
-                }`}
-              >
-                {summary.market_sentiment.toUpperCase()}
-              </span>
-              <span className="text-xs text-stock-text-muted">
-                ({(summary.confidence_score * 100).toFixed(0)}% confidence)
-              </span>
+          <div className="rounded-lg p-3" style={{ backgroundColor: '#17181F' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-stock-text-muted">Sentiment:</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    summary.market_sentiment === 'bullish'
+                      ? 'bg-stock-success/20 text-stock-success'
+                      : summary.market_sentiment === 'bearish'
+                      ? 'bg-stock-danger/20 text-stock-danger'
+                      : 'bg-stock-text-muted/20 text-stock-text-muted'
+                  }`}
+                >
+                  {summary.market_sentiment.toUpperCase()}
+                </span>
+                <span className="text-xs text-stock-text-muted">
+                  ({(summary.confidence_score * 100).toFixed(0)}%)
+                </span>
+              </div>
             </div>
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

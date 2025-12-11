@@ -127,7 +127,7 @@ export function MetricsCard({ stockData }: MetricsCardProps) {
   const hasAnalyst = totalAnalystRecs > 0;
 
   return (
-    <div className="stock-card p-6">
+    <div className="stock-card p-6" style={{ backgroundColor: '#17181F' }}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">

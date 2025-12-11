@@ -257,7 +257,12 @@ class BearAgent:
     def _format_news(self, news_items: list[NewsItem]) -> str:
         """Format news items for prompt."""
         if not news_items:
-            return "No recent news available."
+            return "No recent news available. Focus analysis on price data, technical indicators, and market trends."
+
+        # Check if only fallback news item
+        if len(news_items) == 1 and news_items[0].source == "StockArena":
+            return "No recent news articles found. Base analysis on stock price data, historical performance, and market context."
+
         return "\n".join(
             [f"- {item.title} ({item.source})" for item in news_items[:3]]
         )
