@@ -9,7 +9,7 @@ interface UseWebSocketOptions {
 }
 
 const WS_URL = import.meta.env.DEV
-  ? 'ws://localhost:8000'
+  ? 'ws://localhost:8001'
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
 export function useWebSocket(sessionId: string, options: UseWebSocketOptions) {

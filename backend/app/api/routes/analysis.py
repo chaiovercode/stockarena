@@ -228,58 +228,8 @@ async def get_stock_info(ticker: str, exchange: str = "NSE"):
 async def get_ticker_tape_data():
     """
     Get ticker tape data for major indices/stocks.
-    Fetches live data for Nifty 50 constituents.
+    Uses cached data (5-min TTL) to avoid Yahoo Finance rate limits.
     """
-    import yfinance as yf
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
+    from app.services.cache_service import ticker_tape_cache
 
-    # Nifty 50 constituents (top stocks by weight)
-    nifty_50_symbols = [
-        "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
-        "HINDUNILVR", "SBIN", "BHARTIARTL", "KOTAKBANK", "ITC",
-        "LT", "AXISBANK", "ASIANPAINT", "MARUTI", "TATASTEEL",
-        "BAJFINANCE", "HCLTECH", "WIPRO", "SUNPHARMA", "TITAN",
-        "ULTRACEMCO", "NESTLEIND", "POWERGRID", "NTPC", "TECHM",
-        "ONGC", "JSWSTEEL", "TATAMOTORS", "M&M", "ADANIENT",
-        "COALINDIA", "BAJAJFINSV", "GRASIM", "DIVISLAB", "DRREDDY",
-        "BRITANNIA", "CIPLA", "EICHERMOT", "APOLLOHOSP", "TATACONSUM",
-        "HINDALCO", "HEROMOTOCO", "BPCL", "INDUSINDBK", "SBILIFE",
-        "UPL", "ADANIPORTS", "HDFCLIFE", "BAJAJ-AUTO", "SHREECEM"
-    ]
-
-    def fetch_stock_data(symbol: str) -> dict | None:
-        try:
-            ticker = yf.Ticker(f"{symbol}.NS")
-            info = ticker.info
-            hist = ticker.history(period="2d")
-
-            if hist.empty or len(hist) < 1:
-                return None
-
-            current_price = hist['Close'].iloc[-1]
-            if len(hist) >= 2:
-                prev_close = hist['Close'].iloc[-2]
-                change_pct = ((current_price - prev_close) / prev_close) * 100
-            else:
-                change_pct = info.get('regularMarketChangePercent', 0)
-
-            return {
-                "symbol": symbol,
-                "price": round(current_price, 2),
-                "change": round(change_pct, 2),
-                "name": info.get('shortName', symbol),
-            }
-        except Exception:
-            return None
-
-    # Fetch data in parallel using ThreadPoolExecutor
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        tasks = [loop.run_in_executor(executor, fetch_stock_data, symbol) for symbol in nifty_50_symbols]
-        results = await asyncio.gather(*tasks)
-
-    # Filter out None results
-    ticker_data = [r for r in results if r is not None]
-
-    return {"tickers": ticker_data, "count": len(ticker_data)}
+    return await ticker_tape_cache.get_ticker_tape_data()

@@ -14,7 +14,7 @@ export function TickerTape() {
   useEffect(() => {
     const fetchTickerData = async () => {
       try {
-        const API_URL = import.meta.env.DEV ? 'http://localhost:8000' : '';
+        const API_URL = import.meta.env.DEV ? 'http://localhost:8001' : '';
 
         const response = await fetch(`${API_URL}/api/v1/market/ticker-tape`);
         if (response.ok) {

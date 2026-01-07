@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
 
     # CORS
-    cors_origins: str = '["http://localhost:5173","http://localhost:3000"]'
+    cors_origins: str = '["http://localhost:5173","http://localhost:5174","http://localhost:3000"]'
 
     # Debug
     debug: bool = True
