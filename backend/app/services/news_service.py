@@ -1,10 +1,13 @@
 """News search service."""
 
 import asyncio
+import json
 import re
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
-from app.tools.search_tool import search_news_sync, parse_news_data
+
+from duckduckgo_search import DDGS
+
 from app.core.graph.state import NewsItem
 
 # Thread pool for running sync DuckDuckGo calls
@@ -171,3 +174,56 @@ def build_news_query(ticker: str, company_name: str | None = None) -> str:
         # Use quoted company name for exact match and ticker
         return f'"{company_name}" OR "{clean_ticker}" stock news India'
     return f'"{clean_ticker}" stock news India NSE'
+
+
+def search_news_sync(query: str, max_results: int = 10) -> str:
+    """
+    Search for news using DuckDuckGo.
+
+    Args:
+        query: Search query
+        max_results: Maximum number of results
+
+    Returns:
+        JSON string with news items
+    """
+    try:
+        with DDGS() as ddgs:
+            # Note: DuckDuckGo supports: d (day), w (week), m (month)
+            # Limit to last 2 months (60 days) for recent news only
+            results = list(
+                ddgs.news(
+                    query,
+                    region="in-en",  # India English
+                    safesearch="moderate",
+                    timelimit="m",  # Last month - will be further filtered to 60 days
+                    max_results=max_results,
+                )
+            )
+
+        news_items = [
+            {
+                "title": item.get("title", ""),
+                "snippet": item.get("body", ""),
+                "source": item.get("source", ""),
+                "url": item.get("url", ""),
+                "date": item.get("date", ""),
+            }
+            for item in results
+        ]
+
+        return json.dumps(news_items, indent=2)
+
+    except Exception as e:
+        return json.dumps({"error": str(e), "query": query})
+
+
+def parse_news_data(json_str: str) -> list[dict]:
+    """Parse news data JSON string to list of dictionaries."""
+    try:
+        data = json.loads(json_str)
+        if isinstance(data, dict) and "error" in data:
+            return []
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []

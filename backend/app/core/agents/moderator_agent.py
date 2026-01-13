@@ -1,9 +1,8 @@
 """Moderator Agent - synthesizes debate and provides verdict."""
 
-import json
+import logging
 from datetime import datetime
-from crewai import Agent, Task
-from app.core.agents.base import get_llm
+from app.core.agents.simple_agent import SimpleAgent
 from app.core.graph.state import (
     StockData,
     AgentAnalysis,
@@ -11,6 +10,9 @@ from app.core.graph.state import (
     Source,
 )
 from app.api.schemas.request import TimeHorizon
+
+
+logger = logging.getLogger(__name__)
 
 
 TIME_HORIZON_LABELS = {
@@ -30,12 +32,7 @@ class ModeratorAgent:
     """Moderator agent that synthesizes both perspectives and provides verdict."""
 
     def __init__(self):
-        self.llm = get_llm()
-        self.agent = self._create_agent()
-
-    def _create_agent(self) -> Agent:
-        """Create the CrewAI agent."""
-        return Agent(
+        self.agent = SimpleAgent(
             role="Decisive Investment Analyst & Debate Judge",
             goal="""Analyze bull and bear arguments objectively and determine which case is STRONGER
                    for the given time horizon. Provide a clear verdict - don't fence-sit unless
@@ -50,11 +47,8 @@ class ModeratorAgent:
                         warned on overvalued IPOs, and spotted value in beaten-down financials. You don't
                         guess - you analyze deeply and commit to a view. Indian market specialist (NSE/BSE)
                         with 15+ years calling stocks correctly.""",
-            tools=[],  # Moderator synthesizes existing info
-            llm=self.llm,
-            verbose=True,
-            allow_delegation=False,
-            max_iter=1,
+            model="gpt-4o-mini",
+            temperature=0.7,
         )
 
     def _combine_sources(
@@ -117,8 +111,7 @@ class ModeratorAgent:
             Consider the evolution of arguments across rounds.
             """
 
-        task = Task(
-            description=f"""
+        task_description = f"""
             Synthesize the bull and bear debate on {stock_data.ticker} for a {horizon_label} outlook.
 
             IMPORTANT: This is SUGGESTIVE analysis only, NOT financial advice. Help the investor think through the trade-offs.
@@ -136,13 +129,13 @@ class ModeratorAgent:
             - Q Growth: Revenue {stock_data.revenue_growth or 'N/A'}% | Profit {stock_data.profit_growth or 'N/A'}%
             - Sector: {stock_data.sector or 'N/A'}
 
-            ===== 🐂 BULL CASE (Confidence: {bull_analysis.confidence_score:.0%}) =====
+            ===== BULL CASE (Confidence: {bull_analysis.confidence_score:.0%}) =====
             {bull_analysis.summary}
 
             Key points:
             {bull_args}
 
-            ===== 🐻 BEAR CASE (Confidence: {bear_analysis.confidence_score:.0%}) =====
+            ===== BEAR CASE (Confidence: {bear_analysis.confidence_score:.0%}) =====
             {bear_analysis.summary}
 
             Key points:
@@ -164,11 +157,11 @@ class ModeratorAgent:
             VERDICT GUIDELINES for {horizon_label}:
             Use this decision framework based on confidence scores and argument strength:
 
-            - LOOKS BULLISH: Choose when bull confidence ≥75% and bull case clearly dominates. Strong positive catalysts with limited downside risks.
+            - LOOKS BULLISH: Choose when bull confidence >= 75% and bull case clearly dominates. Strong positive catalysts with limited downside risks.
             - LEANS BULLISH: Choose when bull confidence is 60-74% OR bull case is moderately stronger. More positives than negatives.
             - MIXED SIGNALS: ONLY choose when both sides are genuinely equal strength (both 50-60% confidence) OR legitimate uncertainty exists. Don't default to this!
             - LEANS BEARISH: Choose when bear confidence is 60-74% OR bear case is moderately stronger. More concerns than positives.
-            - LOOKS BEARISH: Choose when bear confidence ≥75% and bear case clearly dominates. Significant risks outweigh potential upside.
+            - LOOKS BEARISH: Choose when bear confidence >= 75% and bear case clearly dominates. Significant risks outweigh potential upside.
 
             DECISION LOGIC:
             1. Compare bull confidence ({bull_analysis.confidence_score:.0%}) vs bear confidence ({bear_analysis.confidence_score:.0%})
@@ -178,13 +171,10 @@ class ModeratorAgent:
             5. If one side is clearly stronger, say so confidently
 
             NOTE: This is investment analysis - take a position based on the evidence. Only use MIXED SIGNALS when genuinely uncertain.
-            """,
-            agent=self.agent,
-            expected_output="JSON formatted suggestive analysis with outlook",
-        )
+            """
 
-        result = task.execute_sync()
-        return self._parse_result(result, sources)
+        response = await self.agent.execute(task_description)
+        return self._parse_result(response, sources)
 
     def _format_arguments(self, arguments: list[AgentArgument]) -> str:
         """Format arguments for prompt."""
@@ -198,55 +188,48 @@ class ModeratorAgent:
     def _parse_result(self, result: str, sources: list[Source]) -> AgentAnalysis:
         """Parse agent result to AgentAnalysis."""
         try:
-            result_str = str(result)
+            data = SimpleAgent.parse_json_response(result)
 
-            start_idx = result_str.find("{")
-            end_idx = result_str.rfind("}") + 1
+            recommendation = data.get("recommendation", "MIXED SIGNALS")
+            # Validate recommendation - new suggestive format
+            valid_recommendations = [
+                "LOOKS BULLISH",
+                "LEANS BULLISH",
+                "MIXED SIGNALS",
+                "LEANS BEARISH",
+                "LOOKS BEARISH",
+            ]
 
-            if start_idx != -1 and end_idx > start_idx:
-                json_str = result_str[start_idx:end_idx]
-                data = json.loads(json_str)
+            logger.info(f"[MODERATOR] Raw recommendation from LLM: {recommendation}")
 
-                recommendation = data.get("recommendation", "MIXED SIGNALS")
-                # Validate recommendation - new suggestive format
-                valid_recommendations = [
-                    "LOOKS BULLISH",
-                    "LEANS BULLISH",
-                    "MIXED SIGNALS",
-                    "LEANS BEARISH",
-                    "LOOKS BEARISH",
-                ]
+            if recommendation not in valid_recommendations:
+                logger.warning(f"[MODERATOR] Invalid recommendation '{recommendation}', defaulting to MIXED SIGNALS")
+                recommendation = "MIXED SIGNALS"
+            else:
+                logger.info(f"[MODERATOR] Valid recommendation: {recommendation}")
 
-                print(f"[MODERATOR] Raw recommendation from LLM: {recommendation}")
+            return AgentAnalysis(
+                agent_type="moderator",
+                summary=data.get("summary", "Analysis completed."),
+                arguments=[
+                    AgentArgument(
+                        point=arg.get("point", ""),
+                        evidence=arg.get("evidence", ""),
+                        confidence=float(arg.get("confidence", 0.7)),
+                    )
+                    for arg in data.get("arguments", [])
+                ],
+                recommendation=recommendation,
+                confidence_score=float(data.get("confidence_score", 0.7)),
+                sources=sources,
+                timestamp=datetime.utcnow(),
+            )
 
-                if recommendation not in valid_recommendations:
-                    print(f"[MODERATOR] Invalid recommendation '{recommendation}', defaulting to MIXED SIGNALS")
-                    recommendation = "MIXED SIGNALS"
-                else:
-                    print(f"[MODERATOR] Valid recommendation: {recommendation}")
+        except (ValueError, KeyError) as e:
+            logger.error(f"[MODERATOR] Error parsing result: {e}")
+            logger.error(f"[MODERATOR] Result snippet: {result[:200] if result else 'None'}")
 
-                return AgentAnalysis(
-                    agent_type="moderator",
-                    summary=data.get("summary", "Analysis completed."),
-                    arguments=[
-                        AgentArgument(
-                            point=arg.get("point", ""),
-                            evidence=arg.get("evidence", ""),
-                            confidence=float(arg.get("confidence", 0.7)),
-                        )
-                        for arg in data.get("arguments", [])
-                    ],
-                    recommendation=recommendation,
-                    confidence_score=float(data.get("confidence_score", 0.7)),
-                    sources=sources,
-                    timestamp=datetime.utcnow(),
-                )
-
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            print(f"[MODERATOR] Error parsing result: {e}")
-            print(f"[MODERATOR] Result snippet: {result[:200] if result else 'None'}")
-
-        print("[MODERATOR] Fallback to MIXED SIGNALS due to parsing error")
+        logger.info("[MODERATOR] Fallback to MIXED SIGNALS due to parsing error")
         return AgentAnalysis(
             agent_type="moderator",
             summary=str(result)[:500] if result else "Analysis completed.",

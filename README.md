@@ -1,308 +1,115 @@
-# Stock Arena
+# Stock Arena 📈
 
-AI-powered stock analysis platform where Bull and Bear agents debate investment merits before a Judge delivers the final verdict.
+Your personal AI stock debate analyzer. Watch a Bull and Bear agent argue about whether you should buy a stock. A Judge agent gives the final verdict.
 
-## Overview
+Think of it like having two expert traders in a room arguing about a stock—one super optimistic, one super pessimistic—then a judge decides who makes more sense.
 
-Stock Arena uses a multi-agent AI system to analyze stocks from opposing perspectives:
+## How It Works
 
-- **Bull Agent**: Argues the bullish case - growth potential, positive catalysts, and reasons to buy
-- **Bear Agent**: Counters with risks, concerns, valuation issues, and reasons for caution
-- **Moderator (Judge)**: Synthesizes both perspectives and delivers a balanced verdict
+1. **You pick a stock** (e.g., "TATASTEEL")
+2. **The app fetches live data** from Yahoo Finance
+3. **Bull Agent argues**: "Why you SHOULD buy this stock"
+4. **Bear Agent counters**: "Here's why you SHOULDN'T buy it"
+5. **Judge decides**: "Here's my balanced take"
+6. **You get a verdict** with real reasons from both sides
 
-The debate happens in real-time over WebSocket, with live stock data from Yahoo Finance and recent news context.
+All three happen in real-time, streaming updates as they happen.
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│              React + TypeScript + Tailwind                   │
-│                    (Port 5173)                               │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ WebSocket
-┌─────────────────────▼───────────────────────────────────────┐
-│                        Backend                               │
-│                  FastAPI + LangGraph                         │
-│                    (Port 8000)                               │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐    ┌─────────┐    ┌────────────┐              │
-│  │  Bull   │◄──►│  Bear   │◄──►│ Moderator  │              │
-│  │  Agent  │    │  Agent  │    │   Agent    │              │
-│  └────┬────┘    └────┬────┘    └─────┬──────┘              │
-│       │              │               │                      │
-│       └──────────────┴───────────────┘                      │
-│                      │                                       │
-│              ┌───────▼───────┐                              │
-│              │   LangGraph   │                              │
-│              │  State Machine│                              │
-│              └───────────────┘                              │
-├─────────────────────────────────────────────────────────────┤
-│  Data Sources:                                              │
-│  • Yahoo Finance (yfinance) - Stock data & metrics          │
-│  • DuckDuckGo (ddgs) - Recent news search                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Tech Stack
-
-### Backend
-- **FastAPI** - High-performance async web framework
-- **LangGraph** - Orchestrates the multi-agent debate flow
-- **CrewAI** - Provides the agent framework
-- **OpenAI GPT** - Powers the AI agents
-- **yfinance** - Real-time stock data from Yahoo Finance
-- **DuckDuckGo Search** - News and sentiment context
-
-### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling (comic book theme)
-- **Tremor** - Charts and data visualization
-- **WebSocket** - Real-time debate streaming
-
-## Getting Started
-
-### Prerequisites
+## What You Need
 
 - Python 3.11+
 - Node.js 18+
-- OpenAI API Key
+- OpenAI API key 
 
-### 1. Clone the Repository
-
+### 1. Get the code
 ```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd stockarena
 ```
 
-### 2. Backend Setup
-
+### 2. Set up the backend
 ```bash
 cd backend
 
-# Create virtual environment
+# Create isolated Python environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate 
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file
-cp .env.example .env
-
-# Edit .env and add your OpenAI API key
-# OPENAI_API_KEY=sk-your-key-here
+# Create .env file with your OpenAI key
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+echo "CORS_ORIGINS=[\"http://localhost:5173\"]" >> .env
 ```
 
-### 3. Frontend Setup
-
+### 3. Set up the frontend
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
 ```
 
-### 4. Configure Environment
-
-Edit `backend/.env`:
-
-```env
-OPENAI_API_KEY=sk-proj-your-openai-api-key
-CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
-DEBUG=true
-LOG_LEVEL=INFO
-```
-
-## Running the Application
-
-### Option 1: Run Both Services (Recommended)
-
-From the project root directory:
-
+### 4. Run it
 ```bash
-# Kill any existing server on port 8000, then start both services
-lsof -ti:8000 | xargs kill -9 2>/dev/null || true && \
-cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000 --host 0.0.0.0 & \
+# Terminal 1: Start the backend
+cd backend && source venv/bin/activate
+uvicorn app.main:app --reload
+
+# Terminal 2: Start the frontend
 cd frontend && npm run dev
 ```
 
-### Option 2: Run Services Separately
+Then open **http://localhost:5173** in your browser and search for a stock.
 
-**Terminal 1 - Backend:**
-```bash
-cd backend
-source venv/bin/activate
-uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
-```
+## Using It
 
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
+1. Type a stock ticker like "TATASTEEL" or "RELIANCE"
+2. Pick your exchange (NSE or BSE)
+3. Choose how long you plan to hold (short-term, medium-term, or long-term)
+4. Watch the agents debate in real-time
 
-### Option 3: Docker Compose
+## What You'll See
 
-```bash
-# Create .env file in project root with your API keys
-docker-compose up --build
-```
-
-## Accessing the Application
-
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-## Usage
-
-1. Open http://localhost:5173 in your browser
-2. Enter a stock ticker (e.g., `TATASTEEL`, `RELIANCE`, `TCS` for NSE)
-3. Select exchange (NSE/BSE)
-4. Choose time horizon (Short-term, Medium-term, Long-term)
-5. Set number of debate rounds (1-3)
-6. Click "Start Battle" and watch the AI agents debate!
-
-## Features
-
-- **Real-time Debate**: Watch Bull and Bear agents argue in real-time via WebSocket
-- **Multi-round Debates**: Configure 1-3 rounds for deeper analysis
-- **Time Horizon Analysis**: Short-term (1-5 days), Medium-term (1-3 months), Long-term (1+ year)
-- **Comprehensive Data**:
-  - Current price, P/E, P/B, ROE, Debt/Equity
-  - 52-week high/low
-  - Analyst recommendations
-  - Recent news sentiment
-- **Interactive Charts**: Historical price visualization with Tremor
-- **Confidence Scores**: Each argument comes with an AI confidence rating
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | API info |
-| `/health` | GET | Health check |
-| `/docs` | GET | Swagger documentation |
-| `/ws/debate/{session_id}` | WebSocket | Real-time debate streaming |
-| `/ws/debate` | WebSocket | Auto-generated session ID |
-
-### WebSocket Message Format
-
-**Start Debate:**
-```json
-{
-  "type": "start",
-  "ticker": "TATASTEEL",
-  "exchange": "NSE",
-  "max_rounds": 1,
-  "time_horizon": "medium_term"
-}
-```
-
-**Response Types:**
-- `started` - Debate initiated
-- `data_fetched` - Stock data retrieved
-- `agent_start` - Agent beginning analysis
-- `agent_response` - Agent analysis complete
-- `round_complete` - Debate round finished
-- `complete` - Debate finished
-- `error` - Error occurred
-
-## Project Structure
-
-```
-stockarena/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── routes/
-│   │   │   │   ├── analysis.py      # REST endpoints
-│   │   │   │   └── websocket.py     # WebSocket handler
-│   │   │   └── schemas/             # Pydantic models
-│   │   ├── core/
-│   │   │   ├── agents/
-│   │   │   │   ├── bull_agent.py    # Bullish analyst
-│   │   │   │   ├── bear_agent.py    # Bearish analyst
-│   │   │   │   └── moderator_agent.py # Judge
-│   │   │   └── graph/
-│   │   │       ├── builder.py       # LangGraph setup
-│   │   │       ├── nodes.py         # Graph nodes
-│   │   │       └── state.py         # State schema
-│   │   ├── services/
-│   │   │   ├── stock_service.py     # Yahoo Finance
-│   │   │   └── news_service.py      # DuckDuckGo
-│   │   ├── config.py                # Settings
-│   │   └── main.py                  # FastAPI app
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── DebatePanel/         # Bull/Bear/Moderator UI
-│   │   │   ├── StockCharts/         # Price chart & metrics
-│   │   │   ├── SearchBar/           # Ticker search
-│   │   │   └── Layout/              # Dashboard layout
-│   │   ├── hooks/
-│   │   │   ├── useDebate.ts         # Debate state management
-│   │   │   └── useWebSocket.ts      # WebSocket connection
-│   │   └── types/                   # TypeScript types
-│   ├── package.json
-│   └── tailwind.config.js
-├── docker-compose.yml
-└── README.md
-```
+- **Current stock price** and key metrics (P/E, debt, returns)
+- **Bull's case**: 3-4 reasons to buy with confidence scores
+- **Bear's case**: 3-4 reasons to be cautious with confidence scores
+- **Recent news**: Context from recent articles
+- **Judge's verdict**: A balanced final opinion
+- **Multi-round debates** (optional): Agents can rebut each other (1-3 rounds)
 
 ## Troubleshooting
 
-### "OPENAI_API_KEY is required" Error
+**Backend won't start?**
+- Make sure you have your OpenAI API key in `.env`
+- Check that Python 3.11+ is installed (`python3 --version`)
 
-Make sure your `.env` file exists in `backend/` and contains a valid API key:
+**Frontend won't load?**
+- Check that both backend and frontend are running
+- Try refreshing the page
+- Check the browser console (F12) for errors
+
+**Stock data not showing?**
+- The ticker might not exist on Yahoo Finance
+- Try NSE tickers like `TATASTEEL.NS` or `RELIANCE.NS`
+
+**Port already in use?**
 ```bash
-cd backend
-cat .env  # Should show OPENAI_API_KEY=sk-...
-```
-
-### WebSocket Connection Failed
-
-1. Ensure backend is running on port 8000
-2. Check CORS_ORIGINS in `.env` includes your frontend URL
-3. Check browser console for specific errors
-
-### Port Already in Use
-
-```bash
-# Kill process on port 8000
+# Kill backend on port 8000
 lsof -ti:8000 | xargs kill -9
 
-# Kill process on port 5173
+# Kill frontend on port 5173
 lsof -ti:5173 | xargs kill -9
 ```
 
-### Stock Data Not Loading
+## How It's Built
 
-- Verify the ticker symbol is correct (e.g., `TATASTEEL.NS` for NSE)
-- The app automatically appends `.NS` or `.BO` based on exchange selection
-- Some tickers may not be available on Yahoo Finance
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key (required) | - |
-| `CORS_ORIGINS` | Allowed frontend origins | `["http://localhost:5173"]` |
-| `DEBUG` | Enable debug mode | `true` |
-| `LOG_LEVEL` | Logging level | `INFO` |
+- **Python backend** uses LangGraph to orchestrate the debate workflow
+- **Three AI agents** powered by OpenAI's GPT-4o (Bull, Bear, Judge)
+- **Real-time streaming** over WebSocket so you see updates as they happen
+- **React frontend** with TypeScript and Tailwind CSS
+- **Live stock data** from Yahoo Finance
+- **Recent news** from DuckDuckGo search
 
 ## License
 
 MIT
-
-## Acknowledgments
-
-- [LangGraph](https://github.com/langchain-ai/langgraph) - Multi-agent orchestration
-- [CrewAI](https://github.com/joaomdmoura/crewAI) - Agent framework
-- [yfinance](https://github.com/ranaroussi/yfinance) - Yahoo Finance data
-- [Tremor](https://tremor.so) - React charts

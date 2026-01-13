@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging
 import os
 from pathlib import Path
 
@@ -8,6 +9,16 @@ from dotenv import load_dotenv
 # Load environment variables before any other imports that might need them
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
+
+# Configure logging for agents and LangGraph
+logging.basicConfig(
+    level=logging.DEBUG if os.getenv("DEBUG") == "true" else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+# Set loggers for different modules
+logging.getLogger("app.core.agents").setLevel(logging.DEBUG)
+logging.getLogger("langgraph").setLevel(logging.INFO)
 
 from datetime import datetime
 from fastapi import FastAPI

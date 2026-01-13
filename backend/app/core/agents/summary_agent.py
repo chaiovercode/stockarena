@@ -1,22 +1,19 @@
 """Summary Agent - generates market + stock context overview."""
 
-import json
+import logging
 from datetime import datetime
-from crewai import Agent, Task
-from app.core.agents.base import get_llm
+from app.core.agents.simple_agent import SimpleAgent
 from app.core.graph.state import StockData, NewsItem
+
+
+logger = logging.getLogger(__name__)
 
 
 class SummaryAgent:
     """Summary agent that provides market + stock context."""
 
     def __init__(self):
-        self.llm = get_llm()
-        self.agent = self._create_agent()
-
-    def _create_agent(self) -> Agent:
-        """Create the CrewAI agent."""
-        return Agent(
+        self.agent = SimpleAgent(
             role="Market Intelligence Analyst & Context Provider",
             goal="""Provide clear, concise summary of both the specific stock's situation
                    and broader market context. Help investors understand if the stock's
@@ -26,11 +23,8 @@ class SummaryAgent:
                         executive summaries that busy investors can scan in 30 seconds.
                         You're known for identifying key catalysts and cutting through noise
                         to highlight what really matters for investment decisions.""",
-            tools=[],
-            llm=self.llm,
-            verbose=True,
-            allow_delegation=False,
-            max_iter=1,
+            model="gpt-4o-mini",
+            temperature=0.7,
         )
 
     async def generate_summary(
@@ -57,8 +51,7 @@ class SummaryAgent:
         news_text = self._format_news(news_items[:10])
 
         # Build prompt
-        task = Task(
-            description=f"""
+        task_description = f"""
             Analyze the market and stock situation for Indian markets:
 
             MARKET INDICES TODAY:
@@ -106,13 +99,10 @@ class SummaryAgent:
 
             Focus on connecting stock performance to broader market trends. Be direct and actionable.
             Return ONLY valid JSON, no additional text.
-            """,
-            agent=self.agent,
-            expected_output="JSON formatted market + stock summary",
-        )
+            """
 
-        result = task.execute_sync()
-        return self._parse_result(result, stock_data.ticker)
+        response = await self.agent.execute(task_description)
+        return self._parse_result(response, stock_data.ticker)
 
     def _format_market_indices(self, indices: list[dict]) -> str:
         """Format market indices for prompt."""
@@ -146,47 +136,39 @@ class SummaryAgent:
     def _parse_result(self, result: str, ticker: str) -> dict:
         """Parse agent result to structured dict."""
         try:
-            result_str = str(result)
+            data = SimpleAgent.parse_json_response(result)
 
-            # Extract JSON from result
-            start_idx = result_str.find('{')
-            end_idx = result_str.rfind('}') + 1
+            # Validate sentiment
+            valid_sentiments = ['bullish', 'bearish', 'neutral']
+            sentiment = data.get('market_sentiment', 'neutral').lower()
+            if sentiment not in valid_sentiments:
+                sentiment = 'neutral'
 
-            if start_idx != -1 and end_idx > start_idx:
-                json_str = result_str[start_idx:end_idx]
-                data = json.loads(json_str)
+            # Ensure top_headlines is list of dicts
+            top_headlines = data.get('top_headlines', [])
+            if not isinstance(top_headlines, list):
+                top_headlines = []
 
-                # Validate sentiment
-                valid_sentiments = ['bullish', 'bearish', 'neutral']
-                sentiment = data.get('market_sentiment', 'neutral').lower()
-                if sentiment not in valid_sentiments:
-                    sentiment = 'neutral'
+            # Ensure key_catalysts is list
+            key_catalysts = data.get('key_catalysts', [])
+            if not isinstance(key_catalysts, list):
+                key_catalysts = []
 
-                # Ensure top_headlines is list of dicts
-                top_headlines = data.get('top_headlines', [])
-                if not isinstance(top_headlines, list):
-                    top_headlines = []
+            return {
+                'market_overview': data.get('market_overview', 'Market analysis in progress.'),
+                'stock_context': data.get('stock_context', f'Analyzing {ticker} performance.'),
+                'key_catalysts': key_catalysts[:3],  # Limit to 3
+                'top_headlines': top_headlines[:3],  # Limit to 3
+                'market_sentiment': sentiment,
+                'confidence_score': float(data.get('confidence_score', 0.7)),
+            }
 
-                # Ensure key_catalysts is list
-                key_catalysts = data.get('key_catalysts', [])
-                if not isinstance(key_catalysts, list):
-                    key_catalysts = []
-
-                return {
-                    'market_overview': data.get('market_overview', 'Market analysis in progress.'),
-                    'stock_context': data.get('stock_context', f'Analyzing {ticker} performance.'),
-                    'key_catalysts': key_catalysts[:3],  # Limit to 3
-                    'top_headlines': top_headlines[:3],  # Limit to 3
-                    'market_sentiment': sentiment,
-                    'confidence_score': float(data.get('confidence_score', 0.7)),
-                }
-
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            print(f"[SUMMARY AGENT] Error parsing result: {e}")
-            print(f"[SUMMARY AGENT] Result snippet: {result[:200] if result else 'None'}")
+        except (ValueError, KeyError) as e:
+            logger.error(f"[SUMMARY AGENT] Error parsing result: {e}")
+            logger.error(f"[SUMMARY AGENT] Result snippet: {result[:200] if result else 'None'}")
 
         # Fallback response
-        print("[SUMMARY AGENT] Using fallback response")
+        logger.info("[SUMMARY AGENT] Using fallback response")
         return {
             'market_overview': 'Market analysis completed. Reviewing current conditions.',
             'stock_context': f'Analyzing {ticker} in current market context.',

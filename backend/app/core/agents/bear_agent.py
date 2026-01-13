@@ -1,9 +1,8 @@
 """Bear Agent - argues the negative/risk case."""
 
-import json
+import logging
 from datetime import datetime
-from crewai import Agent, Task
-from app.core.agents.base import get_llm
+from app.core.agents.simple_agent import SimpleAgent
 from app.core.graph.state import (
     StockData,
     NewsItem,
@@ -12,8 +11,9 @@ from app.core.graph.state import (
     Source,
 )
 from app.api.schemas.request import TimeHorizon
-from app.tools.yfinance_tool import YFinanceTool
-from app.tools.search_tool import SearchTool
+
+
+logger = logging.getLogger(__name__)
 
 
 TIME_HORIZON_LABELS = {
@@ -33,12 +33,7 @@ class BearAgent:
     """Bear agent that argues the risk/negative case."""
 
     def __init__(self):
-        self.llm = get_llm()
-        self.agent = self._create_agent()
-
-    def _create_agent(self) -> Agent:
-        """Create the CrewAI agent."""
-        return Agent(
+        self.agent = SimpleAgent(
             role="Ruthless Bear Analyst & Bull Slayer",
             goal="""EVISCERATE bullish arguments and expose why this stock is a TRAP.
                    Tear apart the bull's hopium-fueled delusions with cold hard facts.
@@ -52,11 +47,8 @@ class BearAgent:
                         You don't just disagree with bulls - you DEMOLISH their fantasy with
                         forensic analysis. Your motto: "Every bull case has holes, find them."
                         Indian market specialist (NSE/BSE) who has seen every pump and dump.""",
-            tools=[YFinanceTool(), SearchTool()],
-            llm=self.llm,
-            verbose=True,
-            allow_delegation=False,
-            max_iter=1,
+            model="gpt-4o-mini",
+            temperature=0.7,
         )
 
     def _is_bearish_news(self, item: NewsItem) -> bool:
@@ -100,7 +92,7 @@ class BearAgent:
         # Filter for bearish-leaning news sources
         bearish_news = [item for item in news_items if self._is_bearish_news(item)]
 
-        print(f"[BEAR AGENT] Total news items: {len(news_items)}, Bearish filtered: {len(bearish_news)}")
+        logger.info(f"[BEAR AGENT] Total news items: {len(news_items)}, Bearish filtered: {len(bearish_news)}")
 
         # If no bearish news found, take neutral/risk-focused news
         if not bearish_news:
@@ -138,7 +130,7 @@ class BearAgent:
                 seen_sources.add(item.source)
                 count += 1
 
-        print(f"[BEAR AGENT] Added {count} news sources")
+        logger.info(f"[BEAR AGENT] Added {count} news sources")
         return sources
 
     async def analyze(
@@ -177,15 +169,14 @@ class BearAgent:
         if bull_claims:
             counter_context = f"""
 
-            🎯 BULL'S ARGUMENTS TO COUNTER (Round {round_number}):
+            BULL'S ARGUMENTS TO COUNTER (Round {round_number}):
             Their thesis: {bull_claims.summary}
             Their points: {[arg.point for arg in bull_claims.arguments]}
 
             Counter these points with evidence. Show the risks and concerns for the {horizon_label} timeframe.
             """
 
-        task = Task(
-            description=f"""
+        task_description = f"""
             Analyze {stock_data.ticker} and build a strong BEARISH/CAUTIONARY case for a {horizon_label} outlook.
 
             TIME HORIZON: {horizon_label}
@@ -246,13 +237,10 @@ class BearAgent:
             - Below 0.55: Weak bearish case for this timeframe
 
             Focus on risks and concerns most relevant to the {horizon_label} investment horizon.
-            """,
-            agent=self.agent,
-            expected_output="JSON formatted bearish analysis",
-        )
+            """
 
-        result = task.execute_sync()
-        return self._parse_result(result, sources)
+        response = await self.agent.execute(task_description)
+        return self._parse_result(response, sources)
 
     def _format_news(self, news_items: list[NewsItem]) -> str:
         """Format news items for prompt."""
@@ -270,32 +258,25 @@ class BearAgent:
     def _parse_result(self, result: str, sources: list[Source]) -> AgentAnalysis:
         """Parse agent result to AgentAnalysis."""
         try:
-            result_str = str(result)
+            data = SimpleAgent.parse_json_response(result)
 
-            start_idx = result_str.find("{")
-            end_idx = result_str.rfind("}") + 1
+            return AgentAnalysis(
+                agent_type="bear",
+                summary=data.get("summary", "Bearish analysis completed."),
+                arguments=[
+                    AgentArgument(
+                        point=arg.get("point", ""),
+                        evidence=arg.get("evidence", ""),
+                        confidence=float(arg.get("confidence", 0.7)),
+                    )
+                    for arg in data.get("arguments", [])
+                ],
+                confidence_score=float(data.get("confidence_score", 0.7)),
+                sources=sources,
+                timestamp=datetime.utcnow(),
+            )
 
-            if start_idx != -1 and end_idx > start_idx:
-                json_str = result_str[start_idx:end_idx]
-                data = json.loads(json_str)
-
-                return AgentAnalysis(
-                    agent_type="bear",
-                    summary=data.get("summary", "Bearish analysis completed."),
-                    arguments=[
-                        AgentArgument(
-                            point=arg.get("point", ""),
-                            evidence=arg.get("evidence", ""),
-                            confidence=float(arg.get("confidence", 0.7)),
-                        )
-                        for arg in data.get("arguments", [])
-                    ],
-                    confidence_score=float(data.get("confidence_score", 0.7)),
-                    sources=sources,
-                    timestamp=datetime.utcnow(),
-                )
-
-        except (json.JSONDecodeError, ValueError, KeyError):
+        except (ValueError, KeyError):
             pass
 
         return AgentAnalysis(

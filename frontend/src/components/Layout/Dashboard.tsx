@@ -173,7 +173,7 @@ export function Dashboard() {
               AI content may include mistakes. <a href="#" className="underline hover:text-stock-primary transition-colors">Learn more</a>
             </p>
             <p className="text-sm text-stock-text-muted">
-              Powered by <span className="text-stock-primary font-medium">LangGraph</span>, <span className="text-stock-info font-medium">CrewAI</span> & <span className="text-stock-success font-medium">OpenAI</span>
+              Powered by <span className="text-stock-primary font-medium">LangGraph</span> & <span className="text-stock-success font-medium">OpenAI</span>
             </p>
           </div>
         </div>
